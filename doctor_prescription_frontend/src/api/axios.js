@@ -1,20 +1,13 @@
-// src/api/axios.js
 import axios from "axios";
 
-// Create a custom Axios instance
 const api = axios.create({
-  // Vite uses import.meta.env to access .env variables
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1",
+  baseURL: "http://localhost:5000/api/v1", 
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-/* 
-  Optional but highly recommended:
-  This interceptor will automatically attach the user's token 
-  to every request once they log in!
-*/
+// Attach JWT token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -23,7 +16,18 @@ api.interceptors.request.use(
     }
     return config;
   },
+  (error) => Promise.reject(error),
+);
+
+// Handle global 401 (Unauthorized) redirects
+api.interceptors.response.use(
+  (response) => response,
   (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userRole");
+      window.location.href = "/login";
+    }
     return Promise.reject(error);
   },
 );

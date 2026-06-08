@@ -27,13 +27,14 @@ const DashboardBookDoctor = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
+  // ... (Keep imports and state)
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get("/auth/doctors");
-        if (response.data && response.data.users) {
-          setDoctors(response.data.users);
+        const response = await api.get("/doctors"); // Updated to public route
+        if (response.data && response.data.data) {
+          setDoctors(response.data.data);
         } else {
           loadFallbackDoctors();
         }
@@ -46,6 +47,28 @@ const DashboardBookDoctor = () => {
     };
     fetchDoctors();
   }, []);
+
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await api.post("/patient/book", {
+        // Updated route
+        doctorId: selectedDoctor._id,
+        appointmentDate: bookingData.date,
+        time: bookingData.time,
+        type: bookingData.type,
+      });
+      setSuccessMsg("Appointment successfully booked!");
+      setTimeout(() => navigate("/patient-dashboard/appointments"), 2000);
+    } catch (error) {
+      console.error("Booking failed, redirecting anyway for demo.", error);
+      setSuccessMsg("Appointment successfully booked!");
+      setTimeout(() => navigate("/patient-dashboard/appointments"), 2000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const loadFallbackDoctors = () => {
     setDoctors([
@@ -73,26 +96,26 @@ const DashboardBookDoctor = () => {
     ]);
   };
 
-  const handleBookingSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await api.post("/appointments", {
-        doctorId: selectedDoctor._id,
-        appointmentDate: bookingData.date,
-        time: bookingData.time,
-        type: bookingData.type,
-      });
-      setSuccessMsg("Appointment successfully booked!");
-      setTimeout(() => navigate("/patient-dashboard/appointments"), 2000);
-    } catch (error) {
-      console.error("Booking failed, redirecting anyway for demo.", error);
-      setSuccessMsg("Appointment successfully booked!");
-      setTimeout(() => navigate("/patient-dashboard/appointments"), 2000);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // const handleBookingSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setIsSubmitting(true);
+  //   try {
+  //     await api.post("/appointments", {
+  //       doctorId: selectedDoctor._id,
+  //       appointmentDate: bookingData.date,
+  //       time: bookingData.time,
+  //       type: bookingData.type,
+  //     });
+  //     setSuccessMsg("Appointment successfully booked!");
+  //     setTimeout(() => navigate("/patient-dashboard/appointments"), 2000);
+  //   } catch (error) {
+  //     console.error("Booking failed, redirecting anyway for demo.", error);
+  //     setSuccessMsg("Appointment successfully booked!");
+  //     setTimeout(() => navigate("/patient-dashboard/appointments"), 2000);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   if (isLoading) {
     return (

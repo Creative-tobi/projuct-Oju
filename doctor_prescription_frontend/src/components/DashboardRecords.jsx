@@ -20,76 +20,39 @@ const DashboardRecords = () => {
   const [assessments, setAssessments] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
 
+  // ... (Keep imports and state)
   useEffect(() => {
     const fetchMedicalRecords = async () => {
       setIsLoading(true);
       try {
-        // Fetch Patient Assessments (Wadi History)
-        const assessRes = await api.get("/assessments/patient");
-        if (assessRes.data && assessRes.data.length > 0) {
-          setAssessments(assessRes.data);
+        const assessRes = await api.get("/patient/assessment/history"); // Updated route
+        if (
+          assessRes.data &&
+          assessRes.data.data &&
+          assessRes.data.data.length > 0
+        ) {
+          setAssessments(assessRes.data.data);
         } else {
-          // Fallback Dummy Data
-          setAssessments([
-            {
-              _id: "a1",
-              date: new Date(Date.now() - 86400000 * 5).toISOString(),
-              symptom: "Blurry Vision",
-              duration: "A few days",
-              severity: 6,
-              status: "Consulted",
-              notes:
-                "Patient reported difficulty focusing on near objects. Referred to Dr. Aisha for full comprehensive scan.",
-            },
-            {
-              _id: "a2",
-              date: new Date(Date.now() - 86400000 * 45).toISOString(),
-              symptom: "Red or Bloodshot Eyes",
-              duration: "Just started (Today)",
-              severity: 4,
-              status: "Resolved",
-              notes:
-                "Mild conjunctivitis suspected based on symptoms. Prescribed topical eye drops.",
-            },
-          ]);
+          // Keep your existing fallback dummy data here
         }
 
-        // Fetch Prescriptions/Doctor Notes
-        const scriptRes = await api.get("/prescriptions/patient");
+        const scriptRes = await api
+          .get("/patient/prescriptions")
+          .catch(() => ({ data: [] })); // Updated route
         if (scriptRes.data && scriptRes.data.length > 0) {
           setPrescriptions(scriptRes.data);
         } else {
-          // Fallback Dummy Data
-          setPrescriptions([
-            {
-              _id: "p1",
-              date: new Date(Date.now() - 86400000 * 4).toISOString(),
-              doctor: "Dr. Aisha Rahman",
-              diagnosis: "Myopia (Nearsightedness)",
-              medication: "Corrective Lenses prescribed: OD -1.50, OS -1.75",
-              instructions: "Wear glasses for driving and screen time.",
-            },
-            {
-              _id: "p2",
-              date: new Date(Date.now() - 86400000 * 45).toISOString(),
-              doctor: "Dr. Samuel Johnson",
-              diagnosis: "Bacterial Conjunctivitis",
-              medication: "Ofloxacin Ophthalmic Solution 0.3%",
-              instructions:
-                "Apply 1 drop to the affected eye(s) every 2 to 4 hours for 2 days, then 4 times daily for 5 days.",
-            },
-          ]);
+          // Keep your existing fallback dummy data here
         }
       } catch (error) {
         console.error("Error fetching medical records:", error);
-        // Silent fallback for smooth UI on frontend testing
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchMedicalRecords();
   }, []);
+  // ... (Keep the rest of the JSX exactly as provided)
 
   if (isLoading) {
     return (

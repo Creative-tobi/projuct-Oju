@@ -114,25 +114,27 @@ const DashboardWadi = ({ setActiveTab }) => {
     }, 3000);
   };
 
+  // ... (Keep imports and state up to handleSaveAndBook)
+
   const handleSaveAndBook = async () => {
     setIsSaving(true);
     try {
-      // Compiling the detailed data into a comprehensive clinical note
-      const clinicalNotes = `
-        Eye Involved: ${assessment.affectedEye}
-        Onset: ${assessment.onset}
-        Associated: ${assessment.associatedSymptoms.length > 0 ? assessment.associatedSymptoms.join(", ") : "None reported"}
-        Contacts: ${assessment.medicalContext.wearsContacts ? "Yes" : "No"}, Diabetes: ${assessment.medicalContext.hasDiabetes ? "Yes" : "No"}, Allergies: ${assessment.medicalContext.hasAllergies ? "Yes" : "No"}, Trauma: ${assessment.medicalContext.recentTrauma ? "Yes" : "No"}
-      `.trim();
+      const clinicalNotes = `Eye Involved: ${assessment.affectedEye} | Onset: ${assessment.onset} | Associated: ${assessment.associatedSymptoms.join(", ") || "None"} | Contacts: ${assessment.medicalContext.wearsContacts ? "Yes" : "No"}, Diabetes: ${assessment.medicalContext.hasDiabetes ? "Yes" : "No"}, Allergies: ${assessment.medicalContext.hasAllergies ? "Yes" : "No"}, Trauma: ${assessment.medicalContext.recentTrauma ? "Yes" : "No"}`;
+      
+      // Format payload to match backend expectations: { primarySymptoms, investigationAnswers }
+      const payload = {
+        primarySymptoms: assessment.symptom,
+        investigationAnswers: [
+          { question: "Affected Eye", answer: assessment.affectedEye },
+          { question: "Onset", answer: assessment.onset },
+          { question: "Associated Symptoms", answer: assessment.associatedSymptoms.join(", ") || "None" },
+          { question: "Duration", answer: assessment.duration },
+          { question: "Severity", answer: assessment.severity.toString() },
+          { question: "Medical Context", answer: clinicalNotes }
+        ]
+      };
 
-      await api.post("/assessments", {
-        symptom: assessment.symptom,
-        duration: assessment.duration,
-        severity: assessment.severity,
-        notes: clinicalNotes,
-        status: "Pending Consultation",
-      });
-
+      await api.post("/patient/assessment", payload); // Updated route & payload
       setActiveTab("appointments");
     } catch (error) {
       console.error("Failed to save detailed assessment.", error);
@@ -141,6 +143,7 @@ const DashboardWadi = ({ setActiveTab }) => {
       setIsSaving(false);
     }
   };
+// ... (Keep the rest of the JSX exactly as provided)
 
   useEffect(() => {
     if (step === 6) handleAnalyze();

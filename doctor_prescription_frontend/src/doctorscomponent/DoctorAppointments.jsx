@@ -18,6 +18,7 @@ const DoctorAppointments = () => {
   const [filter, setFilter] = useState("Upcoming"); // 'Upcoming', 'Pending', 'Past'
   const [actionLoading, setActionLoading] = useState(null); // ID of appointment being updated
 
+  // ... (Keep imports and state)
   useEffect(() => {
     fetchAppointments();
   }, []);
@@ -25,9 +26,13 @@ const DoctorAppointments = () => {
   const fetchAppointments = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get("/appointments/doctor");
-      if (response.data && response.data.length > 0) {
-        setAppointments(response.data);
+      const response = await api.get("/provider/appointments"); // Updated route
+      if (
+        response.data &&
+        response.data.data &&
+        response.data.data.length > 0
+      ) {
+        setAppointments(response.data.data);
       } else {
         loadFallbackData();
       }
@@ -38,6 +43,29 @@ const DoctorAppointments = () => {
       setIsLoading(false);
     }
   };
+  // ... (Keep loadFallbackData as provided)
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    setActionLoading(id);
+    try {
+      // Backend expects { action: 'accept' | 'decline' }
+      const action = newStatus === "Confirmed" ? "accept" : "decline";
+      await api.patch(`/provider/appointments/${id}/respond`, { action }); // Updated route & payload
+
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt._id === id ? { ...apt, status: newStatus } : apt,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to update appointment status:", error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+  // ... (Keep the rest of the JSX exactly as provided)
+
+  
 
   const loadFallbackData = () => {
     setAppointments([
@@ -78,24 +106,24 @@ const DoctorAppointments = () => {
   };
 
   // Handle Accepting or Declining an appointment
-  const handleStatusUpdate = async (id, newStatus) => {
-    setActionLoading(id);
-    try {
-      // Simulate API call to update status
-      // await api.put(`/appointments/${id}/status`, { status: newStatus });
+  // const handleStatusUpdate = async (id, newStatus) => {
+  //   setActionLoading(id);
+  //   try {
+  //     // Simulate API call to update status
+  //     // await api.put(`/appointments/${id}/status`, { status: newStatus });
 
-      // Update local state instantly for UI responsiveness
-      setAppointments((prev) =>
-        prev.map((apt) =>
-          apt._id === id ? { ...apt, status: newStatus } : apt,
-        ),
-      );
-    } catch (error) {
-      console.error("Failed to update appointment status:", error);
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  //     // Update local state instantly for UI responsiveness
+  //     setAppointments((prev) =>
+  //       prev.map((apt) =>
+  //         apt._id === id ? { ...apt, status: newStatus } : apt,
+  //       ),
+  //     );
+  //   } catch (error) {
+  //     console.error("Failed to update appointment status:", error);
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
   // Filter Logic
   const filteredAppointments = appointments.filter((app) => {

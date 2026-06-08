@@ -21,11 +21,15 @@ const DashboardAppointments = () => {
     const fetchAppointments = async () => {
       setIsLoading(true);
       try {
-        const response = await api.get("/appointments/patient");
-        if (response.data && response.data.length > 0) {
-          setAppointments(response.data);
+        const response = await api.get("/patient/appointments"); // Updated route
+        if (
+          response.data &&
+          response.data.data &&
+          response.data.data.length > 0
+        ) {
+          setAppointments(response.data.data);
         } else {
-          // Fallback dummy data if the database is empty
+          // Keep your existing fallback dummy data here
           setAppointments([
             {
               _id: "1",
@@ -36,61 +40,22 @@ const DashboardAppointments = () => {
               },
               appointmentDate: new Date(
                 Date.now() + 86400000 * 2,
-              ).toISOString(), // 2 days from now
+              ).toISOString(),
               time: "10:00 AM",
               type: "Online Video Consult",
               status: "Confirmed",
-            },
-            {
-              _id: "2",
-              doctor: {
-                fullName: "Samuel Johnson",
-                specialty: "Glaucoma Specialist",
-                profilePicture: "https://i.pravatar.cc/150?img=11",
-              },
-              appointmentDate: new Date(
-                Date.now() + 86400000 * 5,
-              ).toISOString(), // 5 days from now
-              time: "02:30 PM",
-              type: "In-Person Clinic",
-              status: "Pending",
-            },
-            {
-              _id: "3",
-              doctor: {
-                fullName: "Zubiya Tayyab",
-                specialty: "Pediatric Optometrist",
-                profilePicture: "https://i.pravatar.cc/150?img=47",
-              },
-              appointmentDate: new Date(
-                Date.now() - 86400000 * 10,
-              ).toISOString(), // 10 days ago
-              time: "09:15 AM",
-              type: "Online Video Consult",
-              status: "Completed",
             },
           ]);
         }
       } catch (error) {
         console.error("Error fetching appointments:", error);
-        // Silent fallback for smooth UI
         setAppointments([]);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchAppointments();
   }, []);
-
-  // Filter logic based on the 'status' or date
-  const filteredAppointments = appointments.filter((app) => {
-    if (filter === "Upcoming") {
-      return app.status !== "Completed" && app.status !== "Cancelled";
-    } else {
-      return app.status === "Completed" || app.status === "Cancelled";
-    }
-  });
 
   if (isLoading) {
     return (

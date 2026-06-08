@@ -33,12 +33,12 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await api.get("/auth/doctors");
-        if (response.data && response.data.users) {
-          const formattedDoctors = response.data.users.map((doc) => ({
+        const response = await api.get("/doctors"); // Updated to public route
+        if (response.data && response.data.data) {
+          const formattedDoctors = response.data.data.map((doc) => ({
             id: doc._id,
             fullName: doc.fullName,
-            title: doc.specialty || "Ophthalmologist",
+            title: doc.speciality || "Ophthalmologist",
             profilePicture: doc.profilePicture || "",
             experience: doc.experience || "5",
             clinicName: doc.clinicName || "Oju Vision Care",

@@ -23,27 +23,26 @@ const DoctorTriage = () => {
   const [selectedCase, setSelectedCase] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => {
-    fetchTriageCases();
-  }, []);
+   useEffect(() => {
+     fetchTriageCases();
+   }, []);
 
-  const fetchTriageCases = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch incoming assessments that are pending review
-      const response = await api.get("/assessments/doctor");
-      if (response.data && response.data.length > 0) {
-        setTriageCases(response.data);
-      } else {
-        loadFallbackCases();
-      }
-    } catch (error) {
-      console.error("Error fetching triage cases, using fallback:", error);
-      loadFallbackCases();
-    } finally {
-      setIsLoading(false);
-    }
-  };
+   const fetchTriageCases = async () => {
+     setIsLoading(true);
+     try {
+       const response = await api.get("/provider/triage"); // Updated route
+       if (response.data && response.data.length > 0) {
+         setTriageCases(response.data);
+       } else {
+         loadFallbackCases();
+       }
+     } catch (error) {
+       console.error("Error fetching triage cases, using fallback:", error);
+       loadFallbackCases();
+     } finally {
+       setIsLoading(false);
+     }
+   };
 
   const loadFallbackCases = () => {
     setTriageCases([
@@ -86,7 +85,7 @@ const DoctorTriage = () => {
   const handleMarkReviewed = async (id) => {
     setActionLoading(true);
     try {
-      // await api.put(`/assessments/${id}/status`, { status: 'Reviewed' });
+      await api.patch(`/provider/triage/${id}/review`); // Updated route
       setTriageCases((prev) =>
         prev.map((c) => (c._id === id ? { ...c, status: "Reviewed" } : c)),
       );
@@ -97,7 +96,6 @@ const DoctorTriage = () => {
       setActionLoading(false);
     }
   };
-
   // Filter Logic
   const filteredCases = triageCases.filter((c) => {
     const matchesSearch =

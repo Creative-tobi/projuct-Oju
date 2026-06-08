@@ -38,18 +38,21 @@ const PatientDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        const profileRes = await api.get("/users/profile");
-        if (profileRes.data)
+        const profileRes = await api.get("/profile/me"); // Updated route
+        if (profileRes.data && profileRes.data.data) {
           setUser({
-            name: profileRes.data.fullName || "Patient",
-            email: profileRes.data.email || "",
-            avatar: profileRes.data.profilePicture || user.avatar,
+            name: profileRes.data.data.fullName || "Patient",
+            email: profileRes.data.data.email || "",
+            avatar:
+              profileRes.data.data.profilePicture ||
+              profileRes.data.data.avatar ||
+              user.avatar,
           });
-
-        const aptRes = await api.get("/appointments/patient");
-        if (aptRes.data && aptRes.data.length > 0)
-          setUpcomingAppointment(aptRes.data[0]);
-        else
+        }
+        const aptRes = await api.get("/patient/appointments"); // Updated route
+        if (aptRes.data && aptRes.data.data && aptRes.data.data.length > 0) {
+          setUpcomingAppointment(aptRes.data.data[0]);
+        } else {
           setUpcomingAppointment({
             doctor: "Dr. Aisha Rahman",
             specialty: "Consultant Optometrist",
@@ -58,11 +61,15 @@ const PatientDashboard = () => {
             type: "Online Video Consult",
             image: "https://i.pravatar.cc/150?img=43",
           });
-
-        const assessmentRes = await api.get("/assessments/patient");
-        if (assessmentRes.data && assessmentRes.data.length > 0)
-          setRecentAssessments(assessmentRes.data);
-        else
+        }
+        const assessmentRes = await api.get("/patient/assessment/history"); // Updated route
+        if (
+          assessmentRes.data &&
+          assessmentRes.data.data &&
+          assessmentRes.data.data.length > 0
+        ) {
+          setRecentAssessments(assessmentRes.data.data);
+        } else {
           setRecentAssessments([
             {
               _id: 1,
@@ -72,7 +79,9 @@ const PatientDashboard = () => {
               status: "Consultation Booked",
             },
           ]);
+        }
       } catch (error) {
+        console.error("Backend not fully connected yet, using fallback data.");
         setUser((prev) => ({ ...prev, name: "Patient" }));
         setUpcomingAppointment({
           doctor: "Dr. Aisha Rahman",

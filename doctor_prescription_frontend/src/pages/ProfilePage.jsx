@@ -44,16 +44,20 @@ const ProfilePage = () => {
     experience: "",
   });
 
+  // ... (Keep imports and state)
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get("/users/profile");
-        if (response.data) {
+        const response = await api.get("/profile/me"); // Updated route
+        if (response.data && response.data.data) {
+          const data = response.data.data;
           setFormData((prev) => ({
             ...prev,
-            ...response.data,
-            fullName: response.data.fullName || response.data.name || "",
-            profilePicture: response.data.profilePicture || prev.profilePicture,
+            ...data,
+            fullName: data.fullName || "",
+            profilePicture:
+              data.profilePicture || data.avatar || prev.profilePicture,
+            specialty: data.speciality || "", // Match backend schema
           }));
         }
       } catch (error) {
@@ -61,32 +65,19 @@ const ProfilePage = () => {
           "Could not fetch profile, falling back to empty state.",
           error,
         );
-        setFormData((prev) => ({
-          ...prev,
-          fullName: role === "doctor" ? "Dr. Jane Doe" : "Olasunkanmi",
-          email: "user@projectoju.com",
-          specialty: "Optometrist",
-          clinicName: "Oju Vision Care",
-        }));
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchProfile();
   }, [role]);
-
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setIsSaving(true);
     setMessage({ type: "", text: "" });
-
     try {
-      await api.put("/users/profile", formData);
+      await api.put("/profile/update", formData); // Updated route
       setMessage({ type: "success", text: "Profile updated successfully!" });
       setIsEditing(false);
     } catch (error) {
@@ -99,7 +90,13 @@ const ProfilePage = () => {
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
     }
   };
+  // ... (Keep the rest of the JSX exactly as provided)
 
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

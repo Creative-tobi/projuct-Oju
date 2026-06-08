@@ -40,69 +40,31 @@ const DoctorDashboard = () => {
     appointmentsToday: 0,
   });
 
+  // ... (Keep imports and state)
   useEffect(() => {
     const fetchDoctorData = async () => {
       try {
         setIsLoading(true);
-
-        const profileRes = await api.get("/users/profile");
-        if (profileRes.data) {
+        const profileRes = await api.get("/profile/me"); // Updated route
+        if (profileRes.data && profileRes.data.data) {
           setDoctor({
-            name: profileRes.data.fullName || "Dr. Specialist",
-            specialty: profileRes.data.specialty || "Optometrist",
-            avatar: profileRes.data.profilePicture || doctor.avatar,
+            name: profileRes.data.data.fullName || "Dr. Specialist",
+            specialty: profileRes.data.data.speciality || "Optometrist",
+            avatar: profileRes.data.data.profilePicture || doctor.avatar,
           });
         }
-
-        const aptRes = await api.get("/appointments/doctor");
-        if (aptRes.data && aptRes.data.length > 0) {
-          setTodayAppointments(aptRes.data.slice(0, 3));
+        const aptRes = await api.get("/provider/appointments"); // Updated route
+        if (aptRes.data && aptRes.data.data && aptRes.data.data.length > 0) {
+          setTodayAppointments(aptRes.data.data.slice(0, 3));
           setStats((prev) => ({
             ...prev,
-            appointmentsToday: aptRes.data.length,
+            appointmentsToday: aptRes.data.data.length,
           }));
-        } else {
-          setTodayAppointments([
-            {
-              _id: "1",
-              patientName: "Aisha",
-              time: "10:00 AM",
-              type: "Video Consult",
-              status: "Confirmed",
-            },
-            {
-              _id: "2",
-              patientName: "Samuel",
-              time: "01:30 PM",
-              type: "In-Person",
-              status: "Pending",
-            },
-          ]);
-          setStats((prev) => ({ ...prev, appointmentsToday: 2 }));
         }
-
-        const triageRes = await api.get("/assessments/doctor");
+        const triageRes = await api.get("/provider/triage"); // Updated route
         if (triageRes.data && triageRes.data.length > 0) {
           setPendingTriage(triageRes.data.slice(0, 3));
-        } else {
-          setPendingTriage([
-            {
-              _id: "t1",
-              patientName: "Anonymous Patient",
-              symptom: "Severe Eye Pain",
-              severity: 8,
-              timeAgo: "2 hours ago",
-            },
-            {
-              _id: "t2",
-              patientName: "John D.",
-              symptom: "Blurry Vision",
-              severity: 5,
-              timeAgo: "5 hours ago",
-            },
-          ]);
         }
-
         setStats((prev) => ({ ...prev, totalPatients: 142 }));
       } catch (error) {
         console.error("Backend not fully connected yet, using fallback data.");
@@ -137,9 +99,9 @@ const DoctorDashboard = () => {
         setIsLoading(false);
       }
     };
-
     fetchDoctorData();
   }, []);
+  // ... (Keep the rest of the JSX exactly as provided)
 
   if (isLoading) {
     return (
@@ -321,7 +283,6 @@ const DoctorDashboard = () => {
                 </div>
               </div>
             )}
-
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8">
               <div className="max-w-6xl mx-auto space-y-8">

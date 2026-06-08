@@ -28,12 +28,12 @@ const DoctorPatients = () => {
     prescriptions: [],
   });
 
+  // ... (Keep imports and state)
   useEffect(() => {
     const fetchPatients = async () => {
       setIsLoading(true);
       try {
-        // Assuming your backend has an endpoint to get all patients assigned to/consulted by this doctor
-        const response = await api.get("/doctor/patients");
+        const response = await api.get("/provider/patients"); // Updated route
         if (response.data && response.data.length > 0) {
           setPatients(response.data);
         } else {
@@ -46,9 +46,9 @@ const DoctorPatients = () => {
         setIsLoading(false);
       }
     };
-
     fetchPatients();
   }, []);
+  // ... (Keep the rest of the JSX exactly as provided)
 
   const loadFallbackPatients = () => {
     setPatients([
