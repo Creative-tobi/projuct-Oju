@@ -10,6 +10,8 @@ const authRoutes = require("./router/auth.router");
 const patientRoutes = require("./router/patient.router");
 const providerRoutes = require("./router/provider.router");
 const adminRoutes = require("./router/admin.router");
+const profileRoutes = require("./router/profile.router");
+const doctorRoutes = require("./router/doctor.router");
 
 // NEW: Import the Error Middleware
 const errorHandler = require("./middleware/error.middleware");
@@ -24,8 +26,10 @@ app.use(express.urlencoded({ extended: true }));
 // Mount Routers
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/patient", patientRoutes);
+app.use("/api/v1/doctors", doctorRoutes);
 app.use("/api/v1/provider", providerRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/profile", profileRoutes)
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

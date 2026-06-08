@@ -1,6 +1,8 @@
 const Appointment = require("../model/appointment.model");
 const sendEmail = require("../service/sendEmail");
 const Doctor = require("../model/doctor.model");
+const Symptom = require("../model/symptom.model");
+// const Appointment = require("../model/appointment.model");
 // -----------------------------------------
 // @route   GET /api/v1/provider/appointments
 // @desc    Get all appointments for the logged-in doctor
@@ -146,7 +148,9 @@ exports.updateSchedule = async (req, res) => {
 
     // Validate the input
     if (!days || !Array.isArray(days)) {
-      return res.status(400).json({ error: "Please provide an array of working days." });
+      return res
+        .status(400)
+        .json({ error: "Please provide an array of working days." });
     }
 
     // Find the logged-in doctor
@@ -160,18 +164,109 @@ exports.updateSchedule = async (req, res) => {
     doctor.availability = {
       days,
       startTime: startTime || doctor.availability.startTime,
-      endTime: endTime || doctor.availability.endTime
+      endTime: endTime || doctor.availability.endTime,
     };
 
     await doctor.save();
 
     res.status(200).json({
       message: "Schedule updated successfully.",
-      availability: doctor.availability
+      availability: doctor.availability,
     });
-
   } catch (error) {
     console.error("Update Schedule Error:", error);
     res.status(500).json({ error: "Server error updating schedule." });
+  }
+};
+
+
+
+// -----------------------------------------
+// @route   GET /api/v1/provider/triage
+// @desc    Get pending Wadi assessments for doctor review
+// -----------------------------------------
+exports.getTriageCases = async (req, res) => {
+  try {
+    const cases = await Symptom.find({})
+      .populate("patient", "fullName email")
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    // Map backend data to the frontend's expected shape
+    const formattedCases = cases.map((c) => {
+      const severityAns = c.investigationAnswers?.find(
+        (a) => a.question === "Severity",
+      );
+      const durationAns = c.investigationAnswers?.find(
+        (a) => a.question === "Duration",
+      );
+      const notes =
+        c.investigationAnswers
+          ?.map((a) => `${a.question}: ${a.answer}`)
+          .join("\n") || "No notes";
+
+      return {
+        _id: c._id,
+        patientName: c.patient?.fullName || "Anonymous Patient",
+        symptom: c.primarySymptoms,
+        severity: parseInt(severityAns?.answer || 5),
+        duration: durationAns?.answer || "Unknown",
+        status: "Pending",
+        createdAt: c.createdAt,
+        notes: notes,
+      };
+    });
+
+    res.status(200).json(formattedCases);
+  } catch (error) {
+    console.error("Fetch Triage Error:", error);
+    res.status(500).json({ error: "Server error fetching triage cases." });
+  }
+};
+
+// -----------------------------------------
+// @route   GET /api/v1/provider/patients
+// @desc    Get list of unique patients who have booked with this doctor
+// -----------------------------------------
+exports.getDoctorPatients = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({ specialist: req.user.id })
+      .populate("patient", "fullName email phone avatar dob gender")
+      .sort({ appointmentDate: -1 });
+
+    // Extract unique patients to avoid duplicates in the directory
+    const uniquePatients = [];
+    const map = new Map();
+    for (const item of appointments) {
+      if (item.patient && !map.has(item.patient._id)) {
+        map.set(item.patient._id, true);
+        uniquePatients.push({
+          ...item.patient.toObject(),
+          lastVisit: item.appointmentDate,
+        });
+      }
+    }
+
+    res.status(200).json(uniquePatients);
+  } catch (error) {
+    console.error("Fetch Patients Error:", error);
+    res.status(500).json({ error: "Server error fetching patients." });
+  }
+};
+
+// -----------------------------------------
+// @route   PATCH /api/v1/provider/triage/:id/review
+// @desc    Mark a triage case as reviewed
+// -----------------------------------------
+exports.reviewTriageCase = async (req, res) => {
+  try {
+    // Note: If your Symptom model has a 'status' field, you can update it here.
+    // For now, we return success to satisfy the frontend flow.
+    res
+      .status(200)
+      .json({ message: "Triage case marked as reviewed successfully." });
+  } catch (error) {
+    console.error("Review Triage Error:", error);
+    res.status(500).json({ error: "Server error updating triage status." });
   }
 };

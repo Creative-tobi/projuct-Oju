@@ -62,7 +62,7 @@ const PatientDashboard = () => {
             image: "https://i.pravatar.cc/150?img=43",
           });
         }
-        const assessmentRes = await api.get("/patient/assessment/history"); // Updated route
+        const assessmentRes = await api.get("/assessment/history"); 
         if (
           assessmentRes.data &&
           assessmentRes.data.data &&

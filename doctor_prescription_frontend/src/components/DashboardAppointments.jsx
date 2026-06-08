@@ -15,21 +15,22 @@ const DashboardAppointments = () => {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState("Upcoming"); // 'Upcoming' or 'Past'
+  const [filter, setFilter] = useState("Upcoming");
 
   useEffect(() => {
     const fetchAppointments = async () => {
       setIsLoading(true);
       try {
-        const response = await api.get("/patient/appointments"); // Updated route
-        if (
-          response.data &&
-          response.data.data &&
-          response.data.data.length > 0
-        ) {
-          setAppointments(response.data.data);
+        // 🔴 FIXED: Changed from "/appointments/patient" to "/patient/appointments"
+        const response = await api.get("/patient/appointments");
+
+        // The backend returns { count: x, data: [...] }
+        const apiData = response.data.data || response.data;
+
+        if (apiData && apiData.length > 0) {
+          setAppointments(apiData);
         } else {
-          // Keep your existing fallback dummy data here
+          // Fallback dummy data if database is empty
           setAppointments([
             {
               _id: "1",
@@ -57,6 +58,12 @@ const DashboardAppointments = () => {
     fetchAppointments();
   }, []);
 
+  const filteredAppointments = appointments.filter((app) => {
+    if (filter === "Upcoming")
+      return app.status !== "Completed" && app.status !== "Cancelled";
+    else return app.status === "Completed" || app.status === "Cancelled";
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -67,7 +74,6 @@ const DashboardAppointments = () => {
 
   return (
     <div className="animate-fade-in-up">
-      {/* Header & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -78,23 +84,18 @@ const DashboardAppointments = () => {
           </p>
         </div>
         <button
-          onClick={() => navigate("/patient-dashboard/book")} // Routes back to landing page to search/book doctors
+          onClick={() => navigate("/patient-dashboard/book")}
           className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-dark transition-colors flex items-center gap-2 shadow-md shrink-0">
           <Plus className="w-5 h-5" /> Book New
         </button>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-4 mb-8 border-b border-gray-200 dark:border-gray-700">
         {["Upcoming", "Past"].map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`pb-4 px-2 text-sm font-bold transition-all relative ${
-              filter === tab
-                ? "text-primary"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}>
+            className={`pb-4 px-2 text-sm font-bold transition-all relative ${filter === tab ? "text-primary" : "text-gray-500 dark:text-gray-400"}`}>
             {tab}
             {filter === tab && (
               <span className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full"></span>
@@ -103,62 +104,42 @@ const DashboardAppointments = () => {
         ))}
       </div>
 
-      {/* Appointments Grid */}
       {filteredAppointments.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredAppointments.map((appointment) => (
             <div
               key={appointment._id}
-              className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col">
-              {/* Doctor Info */}
+              className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-4">
                   <img
                     src={
                       appointment.doctor?.profilePicture ||
-                      "https://ui-avatars.com/api/?name=" +
-                        (appointment.doctor?.fullName || "Doctor")
+                      `https://ui-avatars.com/api/?name=${appointment.doctor?.fullName}`
                     }
                     alt="Doctor"
                     className="w-14 h-14 rounded-full object-cover border-2 border-primary/10"
                   />
                   <div>
                     <h4 className="font-bold text-gray-900 dark:text-white">
-                      Dr. {appointment.doctor?.fullName || appointment.doctor}
+                      Dr. {appointment.doctor?.fullName || "Doctor"}
                     </h4>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {appointment.doctor?.specialty || "Specialist"}
                     </p>
                   </div>
                 </div>
-
-                {/* Status Badge */}
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    appointment.status === "Confirmed"
-                      ? "bg-green-100 text-green-700 dark:bg-green-500/10"
-                      : appointment.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10"
-                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                  }`}>
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${appointment.status === "Confirmed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
                   {appointment.status}
                 </span>
               </div>
 
-              {/* Appointment Details */}
               <div className="space-y-4 mb-8 flex-1 bg-gray-50 dark:bg-gray-700/30 p-4 rounded-2xl">
                 <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
                   <Calendar className="w-5 h-5 text-primary" />
                   <span className="font-medium">
-                    {new Date(appointment.appointmentDate).toLocaleDateString(
-                      undefined,
-                      {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      },
-                    )}
+                    {new Date(appointment.appointmentDate).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
@@ -175,21 +156,15 @@ const DashboardAppointments = () => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3 mt-auto">
                 {filter === "Upcoming" ? (
-                  <>
-                    <button className="flex-1 bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
-                      {appointment.type?.includes("Video")
-                        ? "Join Call"
-                        : "View Directions"}
-                    </button>
-                    <button className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium">
-                      Cancel
-                    </button>
-                  </>
+                  <button className="flex-1 bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
+                    {appointment.type?.includes("Video")
+                      ? "Join Call"
+                      : "View Directions"}
+                  </button>
                 ) : (
-                  <button className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  <button className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-bold">
                     View Summary Notes
                   </button>
                 )}
@@ -199,19 +174,16 @@ const DashboardAppointments = () => {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
-          <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-            <CalendarX2 className="w-10 h-10 text-gray-400" />
-          </div>
+          <CalendarX2 className="w-16 h-16 text-gray-400 mb-4" />
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
             No {filter.toLowerCase()} appointments
           </h3>
           <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-8">
-            You don't have any {filter.toLowerCase()} schedules in your calendar
-            right now.
+            You don't have any {filter.toLowerCase()} schedules right now.
           </p>
           {filter === "Upcoming" && (
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/patient-dashboard/book")}
               className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-dark transition-colors">
               Find a Specialist
             </button>
