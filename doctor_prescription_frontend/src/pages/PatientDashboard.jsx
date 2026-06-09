@@ -141,7 +141,7 @@ const PatientDashboard = () => {
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
             </button>
             <div
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/patient-dashboard/profile")}
               className="flex items-center gap-3 pl-4 md:pl-6 border-l border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-75 transition-opacity">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-gray-900 dark:text-white">

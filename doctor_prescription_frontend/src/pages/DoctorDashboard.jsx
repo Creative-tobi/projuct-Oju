@@ -135,7 +135,7 @@ const DoctorDashboard = () => {
             </button>
 
             <div
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/doctor-dashboard/profile")}
               className="flex items-center gap-3 pl-4 md:pl-6 border-l border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-75 transition-opacity">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-gray-900 dark:text-white">

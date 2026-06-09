@@ -1,57 +1,32 @@
-// models/doctor.model.js
 const mongoose = require("mongoose");
 
 const doctorSchema = new mongoose.Schema(
   {
-    email: { type: String, required: true, unique: true },
     fullName: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, required: true, default: "doctor" },
+    role: { type: String, default: "doctor" },
+    phone: { type: String },
+    address: { type: String },
+    profilePicture: { type: String }, // For image uploads
 
-    // NEW PROFILE PICTURE FIELD:
-    profilePicture: {
-      type: String,
-      default:
-        "https://res.cloudinary.com/demo/image/upload/v1/default_doctor.png", // Replace with a generic doctor silhouette
-    },
+    // 🔴 Doctor-Specific Fields
+    speciality: { type: String },
+    clinicName: { type: String },
+    consultationFee: { type: Number },
+    qualifications: { type: String },
+    experience: { type: String }, // Can be String or Number
 
-    OTP: { type: Number, default: null },
-    otpExpired: { type: Date },
+    // Auth & Verification
     isVerified: { type: Boolean, default: false },
-    isApprovedByAdmin: { type: Boolean, default: false },
+    OTP: { type: Number },
+    otpExpired: { type: Date },
 
-    phone: { type: String, required: true, unique: true },
-    address: { type: String, required: true },
-    clinicName: { type: String, required: true },
-    speciality: {
-      type: String,
-      enum: ["Optometrist", "Ophthalmologist"],
-      required: true,
-    },
+    // Availability (for scheduling)
     availability: {
-      days: [
-        {
-          type: String,
-          enum: [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday",
-          ],
-        },
-      ],
-      startTime: { type: String, default: "09:00" }, // e.g., "09:00"
-      endTime: { type: String, default: "17:00" }, // e.g., "17:00"
-    },
-    consultationFee: { type: Number, required: true },
-    qualifications: { type: [String], required: true },
-
-    location: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], index: "2dsphere" },
+      days: [{ type: String }],
+      startTime: { type: String },
+      endTime: { type: String },
     },
   },
   { timestamps: true },

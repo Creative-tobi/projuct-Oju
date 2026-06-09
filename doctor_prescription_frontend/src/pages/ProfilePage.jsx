@@ -18,12 +18,14 @@ import {
   Bell,
 } from "lucide-react";
 import api from "../api/axios";
+
+// 🔴 NEW: Import BOTH sidebars
 import Sidebar from "../components/Sidebar";
+import DoctorSidebar from "../doctorscomponent/DoctorSidebar";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const role = localStorage.getItem("userRole") || "user"; // 'user' (Patient) or 'doctor'
-
+  const role = localStorage.getItem("userRole") || "user";
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -37,27 +39,26 @@ const ProfilePage = () => {
     address: "",
     profilePicture:
       "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=150&h=150&fit=crop",
-    // Doctor specific fields
     specialty: "",
     clinicName: "",
     consultationFee: "",
     experience: "",
   });
 
-  // ... (Keep imports and state)
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get("/profile/me"); // Updated route
+        const response = await api.get("/profile/me");
         if (response.data && response.data.data) {
-          const data = response.data.data;
           setFormData((prev) => ({
             ...prev,
-            ...data,
-            fullName: data.fullName || "",
+            ...response.data.data,
+            fullName:
+              response.data.data.fullName || response.data.data.name || "",
             profilePicture:
-              data.profilePicture || data.avatar || prev.profilePicture,
-            specialty: data.speciality || "", // Match backend schema
+              response.data.data.profilePicture ||
+              response.data.data.avatar ||
+              prev.profilePicture,
           }));
         }
       } catch (error) {
@@ -65,6 +66,13 @@ const ProfilePage = () => {
           "Could not fetch profile, falling back to empty state.",
           error,
         );
+        setFormData((prev) => ({
+          ...prev,
+          fullName: role === "doctor" ? "Dr. Jane Doe" : "Olasunkanmi",
+          email: "user@projectoju.com",
+          specialty: "Optometrist",
+          clinicName: "Oju Vision Care",
+        }));
       } finally {
         setIsLoading(false);
       }
@@ -72,12 +80,16 @@ const ProfilePage = () => {
     fetchProfile();
   }, [role]);
 
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setIsSaving(true);
     setMessage({ type: "", text: "" });
     try {
-      await api.put("/profile/update", formData); // Updated route
+      await api.put("/profile/update", formData);
       setMessage({ type: "success", text: "Profile updated successfully!" });
       setIsEditing(false);
     } catch (error) {
@@ -90,13 +102,7 @@ const ProfilePage = () => {
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
     }
   };
-  // ... (Keep the rest of the JSX exactly as provided)
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -107,12 +113,14 @@ const ProfilePage = () => {
 
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-300 overflow-hidden">
-      {/* Sidebar Component */}
-      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      {/* 🔴 NEW: Conditionally render the correct sidebar based on role */}
+      {role === "doctor" ? (
+        <DoctorSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      ) : (
+        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      )}
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Dynamic Header */}
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 md:px-8 py-4 flex justify-between items-center z-10 shrink-0 transition-colors duration-300">
           <div className="flex items-center gap-4">
             <button
@@ -124,7 +132,6 @@ const ProfilePage = () => {
               Profile Settings
             </h1>
           </div>
-
           <div className="flex items-center gap-4 md:gap-6">
             <button className="text-gray-400 hover:text-primary transition-colors relative">
               <Bell className="w-6 h-6" />
@@ -147,18 +154,12 @@ const ProfilePage = () => {
           </div>
         </header>
 
-        {/* Scrollable Body Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-3xl mx-auto space-y-8 animate-fade-in-up">
-            {/* Header Actions & Message Banner */}
             <div className="flex items-center justify-end">
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all shadow-sm ${
-                  isEditing
-                    ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300"
-                    : "bg-primary text-white hover:bg-primary-dark"
-                }`}>
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all shadow-sm ${isEditing ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300" : "bg-primary text-white hover:bg-primary-dark"}`}>
                 {isEditing ? (
                   <>
                     <X className="w-4 h-4" /> Cancel Editing
@@ -173,18 +174,13 @@ const ProfilePage = () => {
 
             {message.text && (
               <div
-                className={`p-4 rounded-xl flex items-center gap-3 ${
-                  message.type === "success"
-                    ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                    : "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                }`}>
+                className={`p-4 rounded-xl flex items-center gap-3 ${message.type === "success" ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"}`}>
                 <CheckCircle2 className="w-5 h-5" />
                 <span className="font-medium">{message.text}</span>
               </div>
             )}
 
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-all duration-300">
-              {/* Profile Cover & Avatar */}
               <div className="h-32 bg-gradient-to-r from-primary to-primary-dark relative">
                 <div className="absolute -bottom-12 left-8">
                   <div className="relative">
@@ -197,7 +193,6 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {/* Form Content */}
               <form onSubmit={handleSaveProfile} className="pt-16 pb-8 px-8">
                 <div className="mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
@@ -219,7 +214,6 @@ const ProfilePage = () => {
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                     Personal Information
                   </h3>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -237,7 +231,6 @@ const ProfilePage = () => {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Email Address
@@ -255,7 +248,6 @@ const ProfilePage = () => {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Phone Number
@@ -272,7 +264,6 @@ const ProfilePage = () => {
                         />
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Home / Clinic Address
@@ -291,13 +282,11 @@ const ProfilePage = () => {
                     </div>
                   </div>
 
-                  {/* DOCTOR SPECIFIC FIELDS */}
                   {role === "doctor" && (
                     <div className="mt-10 border-t border-gray-100 dark:border-gray-700 pt-8 space-y-6">
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                         Professional Information
                       </h3>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -325,7 +314,6 @@ const ProfilePage = () => {
                             </select>
                           </div>
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Clinic/Hospital Name
@@ -342,7 +330,6 @@ const ProfilePage = () => {
                             />
                           </div>
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Consultation Fee (₦)
@@ -360,7 +347,6 @@ const ProfilePage = () => {
                             />
                           </div>
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Years of Experience

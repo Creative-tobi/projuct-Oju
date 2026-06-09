@@ -1,14 +1,13 @@
 import axios from "axios";
 
 const api = axios.create({
-  // baseURL: "http://localhost:5000/api/v1",
-  baseURL: "https://projuct-oju.onrender.com/api/v1",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: "http://localhost:5000/api/v1",
+  // baseURL: "https://projuct-oju.onrender.com/api/v1",
+  // 🔴 REMOVED: "Content-Type": "application/json" 
+  // Axios will automatically set the correct boundary for FormData uploads
 });
 
-// Attach JWT token to every request
+// Add a request interceptor to include the JWT token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -17,10 +16,10 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
-// Handle global 401 (Unauthorized) redirects
+// Add a response interceptor to handle token expiration globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -30,7 +29,7 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
     return Promise.reject(error);
-  },
+  }
 );
 
 export default api;

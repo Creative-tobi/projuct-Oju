@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controller/auth.controller");
+const { upload } = require("../config/cloudinary"); 
 
 /**
  * @swagger
@@ -39,7 +40,8 @@ const authController = require("../controller/auth.controller");
  * 201:
  * description: Registration successful
  */
-router.post("/register", authController.register);
+router.post("/register", upload.single("image"), authController.register);
+
 
 /**
  * @swagger

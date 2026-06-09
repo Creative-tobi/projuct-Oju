@@ -10,6 +10,10 @@ import {
   ArrowLeft,
   Loader2,
   CheckCircle2,
+  Camera,
+  Briefcase,
+  Building,
+  DollarSign,
 } from "lucide-react";
 import api from "../api/axios";
 
@@ -18,6 +22,8 @@ const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState("user");
   const [showOTP, setShowOTP] = useState(false);
+
+  // Form States
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -25,7 +31,16 @@ const LoginPage = () => {
     phone: "",
     address: "",
     otp: "",
+    speciality: "",
+    clinicName: "",
+    consultationFee: "",
+    qualifications: "",
   });
+
+  // Image Upload States
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -35,44 +50,74 @@ const LoginPage = () => {
     setError("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      if (isLogin) {
-        const response = await api.post("/auth/login", {
-          email: formData.email,
-          password: formData.password,
-          role: role,
-        });
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("userRole", role);
-        navigate(
-          role === "doctor" ? "/doctor-dashboard" : "/patient-dashboard",
-        );
-      } else {
-        await api.post("/auth/register", {
-          fullName: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          address: formData.address,
-          role: role,
-        });
-        setSuccessMsg(
-          `Registration successful! We sent an OTP to ${formData.email}.`,
-        );
-        setShowOTP(true);
-      }
-    } catch (err) {
-      setError(
-        err.response?.data?.error || "Something went wrong. Please try again.",
-      );
-    } finally {
-      setLoading(false);
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      setError("");
+      try {
+        if (isLogin) {
+          // --- LOGIN FLOW (Remains JSON) ---
+          const response = await api.post("/auth/login", {
+            email: formData.email,
+            password: formData.password,
+            role: role,
+          });
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("userRole", role);
+          navigate(
+            role === "doctor" ? "/doctor-dashboard" : "/patient-dashboard",
+          );
+        } else {
+          // --- REGISTRATION FLOW (MUST BE FORMDATA) ---
+          const formDataObj = new FormData();
+          formDataObj.append("fullName", formData.fullName);
+          formDataObj.append("email", formData.email);
+          formDataObj.append("password", formData.password);
+          formDataObj.append("phone", formData.phone);
+          formDataObj.append("address", formData.address);
+          formDataObj.append("role", role);
+
+          // Append Doctor-specific fields if role is doctor
+          if (role === "doctor") {
+            formDataObj.append("speciality", formData.speciality);
+            formDataObj.append("clinicName", formData.clinicName);
+            formDataObj.append("consultationFee", formData.consultationFee);
+            formDataObj.append("qualifications", formData.qualifications);
+            formDataObj.append("experience", formData.experience || "0");
+          }
+
+          // Append image if one was selected
+          if (imageFile) {
+            formDataObj.append("image", imageFile);
+          }
+
+          // ⚠️ IMPORTANT: Do NOT manually set "Content-Type": "multipart/form-data" here.
+          // Axios automatically sets it with the correct boundary when you pass a FormData object.
+          await api.post("/auth/register", formDataObj);
+
+          setSuccessMsg(
+            `Registration successful! We sent an OTP to ${formData.email}.`,
+          );
+          setShowOTP(true);
+        }
+      } catch (err) {
+        setError(
+          err.response?.data?.error ||
+            err.response?.data?.message ||
+            "Something went wrong.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
@@ -89,10 +134,9 @@ const LoginPage = () => {
         setShowOTP(false);
         setIsLogin(true);
         setSuccessMsg("");
-        setFormData({ ...formData, otp: "" });
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.error || "Invalid OTP. Please try again.");
+      setError(err.response?.data?.error || "Invalid OTP.");
     } finally {
       setLoading(false);
     }
@@ -106,7 +150,7 @@ const LoginPage = () => {
           className="absolute top-8 left-8 flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-medium">
           <ArrowLeft className="w-4 h-4" /> Back to Home
         </button>
-        <div className="max-w-md w-full mx-auto pt-12">
+        <div className="max-w-md w-full mx-auto pt-12 pb-12">
           <div className="flex items-center gap-2 mb-8">
             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg">
               <Eye className="text-white w-6 h-6" />
@@ -154,6 +198,32 @@ const LoginPage = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
                   <>
+                    {/* 🔴 NEW: Profile Image Upload */}
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      <div className="relative">
+                        <img
+                          src={
+                            imagePreview ||
+                            `https://ui-avatars.com/api/?name=${role === "doctor" ? "Doctor" : "User"}`
+                          }
+                          className="w-20 h-20 rounded-full object-cover border-2 border-primary/20"
+                          alt="Preview"
+                        />
+                        <label className="absolute bottom-0 right-0 w-7 h-7 bg-primary rounded-full flex items-center justify-center cursor-pointer text-white shadow-md hover:bg-primary-dark transition-colors">
+                          <Camera className="w-4 h-4" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageChange}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Upload Profile Photo
+                      </p>
+                    </div>
+
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
@@ -166,6 +236,7 @@ const LoginPage = () => {
                         placeholder="Full Name"
                       />
                     </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -192,8 +263,73 @@ const LoginPage = () => {
                         />
                       </div>
                     </div>
+
+                    {/* 🔴 NEW: Doctor Specific Fields */}
+                    {role === "doctor" && (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 ml-1">
+                              Specialty
+                            </label>
+                            <select
+                              name="speciality"
+                              value={formData.speciality}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary outline-none dark:text-white">
+                              <option value="">Select</option>
+                              <option value="Optometrist">Optometrist</option>
+                              <option value="Ophthalmologist">
+                                Ophthalmologist
+                              </option>
+                              <option value="Glaucoma Specialist">
+                                Glaucoma
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 ml-1">
+                              Fee (₦)
+                            </label>
+                            <input
+                              type="number"
+                              name="consultationFee"
+                              value={formData.consultationFee}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary outline-none dark:text-white"
+                              placeholder="5000"
+                            />
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="text"
+                            name="clinicName"
+                            value={formData.clinicName}
+                            onChange={handleInputChange}
+                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary outline-none dark:text-white"
+                            placeholder="Clinic / Hospital Name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 ml-1">
+                            Qualifications
+                          </label>
+                          <textarea
+                            name="qualifications"
+                            value={formData.qualifications}
+                            onChange={handleInputChange}
+                            rows="2"
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary outline-none dark:text-white"
+                            placeholder="e.g. MBBS, FWACS"
+                          />
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
+
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -218,6 +354,7 @@ const LoginPage = () => {
                     placeholder="Password"
                   />
                 </div>
+
                 <button
                   type="submit"
                   disabled={loading}

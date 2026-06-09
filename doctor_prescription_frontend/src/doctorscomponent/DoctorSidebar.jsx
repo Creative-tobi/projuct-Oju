@@ -50,7 +50,6 @@ const DoctorSidebar = ({ isOpen, setIsOpen }) => {
           onClick={() => setIsOpen(false)}
         />
       )}
-
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-6 flex items-center justify-between">
@@ -70,7 +69,6 @@ const DoctorSidebar = ({ isOpen, setIsOpen }) => {
             <X className="w-6 h-6" />
           </button>
         </div>
-
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <button
@@ -79,26 +77,21 @@ const DoctorSidebar = ({ isOpen, setIsOpen }) => {
                 navigate(`/doctor-dashboard/${item.id}`);
                 setIsOpen(false);
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                activeTab === item.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white"
-              }`}>
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${activeTab === item.id ? "bg-primary/10 text-primary" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white"}`}>
               {item.icon} {item.label}
             </button>
           ))}
         </nav>
-
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+          {/* 🔴 UPDATED: Navigate to doctor-specific profile route */}
           <button
             onClick={() => {
-              navigate("/profile");
+              navigate("/doctor-dashboard/profile");
               setIsOpen(false);
             }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-colors">
             <User className="w-5 h-5" /> Profile Settings
           </button>
-
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">

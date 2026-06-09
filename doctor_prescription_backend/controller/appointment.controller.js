@@ -26,17 +26,24 @@ exports.bookAppointment = async (req, res) => {
     }
 
     // 2. Prevent double booking for this exact slot
-    const existingAppointment = await Appointment.findOne({
-      specialist: specialistId,
+    // ... inside exports.bookAppointment ...
+
+  
+    const existingBooking = await Appointment.findOne({
+      specialist: doctorId,
       appointmentDate: new Date(appointmentDate),
+      time: time,
       status: { $in: ["pending", "confirmed"] },
     });
 
-    if (existingAppointment) {
-      return res
-        .status(400)
-        .json({ error: "This time slot is already booked." });
+    if (existingBooking) {
+      return res.status(400).json({
+        error:
+          "This time slot was just booked by another patient. Please select a different time.",
+      });
     }
+
+    // ... proceed to create the appointment ...
 
     // 3. Create a pending appointment in the database
     const newAppointment = await Appointment.create({
