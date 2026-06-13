@@ -17,8 +17,8 @@ exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
     // For security, use environment variables for admin credentials or an Admin model
-    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@projectoju.com";
-    const ADMIN_PASS = process.env.ADMIN_PASSWORD || "Admin@123";
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+    const ADMIN_PASS = process.env.ADMIN_PASSWORD;
 
     if (email !== ADMIN_EMAIL || password !== ADMIN_PASS) {
       return res.status(401).json({ error: "Invalid admin credentials." });
