@@ -1,7 +1,10 @@
 import React from "react";
-import { BadgeCheck, CalendarPlus, Video, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { BadgeCheck, CalendarPlus, Clock, MapPin } from "lucide-react";
 
 const DoctorCard = ({ doctor }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group">
       {/* Profile Header */}
@@ -40,36 +43,34 @@ const DoctorCard = ({ doctor }) => {
             of Experience
           </span>
         </div>
+
+        {/* 🔴 FIXED: Combined Clinic and Price into ONE clean row, removing the duplicate price */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="text-gray-400">🏥</span>
+            <MapPin className="w-4 h-4 text-gray-400" />
             <span className="truncate">
               {doctor.clinicName || "Independent Practice"}
             </span>
           </div>
           <strong className="text-primary whitespace-nowrap">
-            {doctor.fees || "Free"} NGN
+            ₦{doctor.fees || "5000"}
           </strong>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Video className="w-4 h-4 text-gray-400" />
-            <span>Online Consultation</span>
-          </div>
-          <strong className="text-primary whitespace-nowrap">
-            {doctor.fees || "Free"} NGN
-          </strong>
-        </div>
+
+        {/* 🔴 FIXED: Replaced "Online Consultation" with "In-Person Clinic Visit" */}
         <div className="flex items-center gap-3">
           <Clock className="w-4 h-4 text-gray-400" />
           <span>
-            <strong>15 - 20 min</strong> Wait time
+            <strong>In-Person</strong> Clinic Visit
           </span>
         </div>
       </div>
 
       {/* Action Button */}
-      <button className="w-full bg-primary/10 text-primary border border-primary/20 py-2.5 rounded-lg font-semibold group-hover:bg-primary group-hover:text-white transition-all duration-300">
+      {/* 🔴 FIXED: Now routes to /login so users can sign up or log in */}
+      <button
+        onClick={() => navigate("/login")}
+        className="w-full bg-primary/10 text-primary border border-primary/20 py-2.5 rounded-lg font-semibold group-hover:bg-primary group-hover:text-white transition-all duration-300">
         Consult Now
       </button>
     </div>

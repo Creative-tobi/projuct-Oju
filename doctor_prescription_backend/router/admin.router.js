@@ -7,12 +7,15 @@ const { requireRole } = require("../middleware/role.middleware");
 // Public admin route
 router.post("/login", adminController.adminLogin);
 
-// Require JWT and Admin Role
+// Require JWT and Admin Role for all routes below
 router.use(protect);
 router.use(requireRole("admin"));
 
-router.get("/appointments", adminController.getAllAppointments);
+router.get("/dashboard-stats", adminController.getDashboardStats);
+router.get("/doctors", adminController.getAllDoctors);
 router.patch("/doctors/:id/approve", adminController.approveDoctor);
-router.delete("/delete-account", adminController.deleteAccount);
+router.get("/appointments", adminController.getAllAppointments);
+router.delete("/delete-account/:id", adminController.deleteAccount);
+router.get("/activity-logs", adminController.getActivityLogs);
 
 module.exports = router;
