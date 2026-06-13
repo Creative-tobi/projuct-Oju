@@ -11,10 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import api from "../api/axios";
-
-// Updated import path to match your new folder structure
 import DoctorSidebar from "../doctorscomponent/DoctorSidebar";
-// import DoctorSidebar from "../doctorscomponent/DoctorSidebar";
 import DoctorAppointments from "../doctorscomponent/DoctorAppointments";
 import DoctorPatients from "../doctorscomponent/DoctorPatients";
 import DoctorTriage from "../doctorscomponent/DoctorTriage";
@@ -23,10 +20,8 @@ const DoctorDashboard = () => {
   const navigate = useNavigate();
   const { tab } = useParams();
   const activeTab = tab || "overview";
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
   const [doctor, setDoctor] = useState({
     name: "Loading...",
     specialty: "Specialist",
@@ -40,12 +35,11 @@ const DoctorDashboard = () => {
     appointmentsToday: 0,
   });
 
-  // ... (Keep imports and state)
   useEffect(() => {
     const fetchDoctorData = async () => {
       try {
         setIsLoading(true);
-        const profileRes = await api.get("/profile/me"); // Updated route
+        const profileRes = await api.get("/profile/me");
         if (profileRes.data && profileRes.data.data) {
           setDoctor({
             name: profileRes.data.data.fullName || "Dr. Specialist",
@@ -53,17 +47,45 @@ const DoctorDashboard = () => {
             avatar: profileRes.data.data.profilePicture || doctor.avatar,
           });
         }
-        const aptRes = await api.get("/provider/appointments"); // Updated route
+        const aptRes = await api.get("/provider/appointments");
         if (aptRes.data && aptRes.data.data && aptRes.data.data.length > 0) {
           setTodayAppointments(aptRes.data.data.slice(0, 3));
           setStats((prev) => ({
             ...prev,
             appointmentsToday: aptRes.data.data.length,
           }));
+        } else {
+          setTodayAppointments([
+            {
+              _id: "1",
+              patient: { fullName: "Aisha" },
+              time: "10:00 AM",
+              type: "Video Consult",
+              status: "Confirmed",
+            },
+            {
+              _id: "2",
+              patient: { fullName: "Samuel" },
+              time: "01:30 PM",
+              type: "In-Person",
+              status: "Pending",
+            },
+          ]);
+          setStats((prev) => ({ ...prev, appointmentsToday: 2 }));
         }
-        const triageRes = await api.get("/provider/triage"); // Updated route
+        const triageRes = await api.get("/provider/triage");
         if (triageRes.data && triageRes.data.length > 0) {
           setPendingTriage(triageRes.data.slice(0, 3));
+        } else {
+          setPendingTriage([
+            {
+              _id: "t1",
+              patientName: "Anonymous Patient",
+              symptom: "Severe Eye Pain",
+              severity: 8,
+              timeAgo: "2 hours ago",
+            },
+          ]);
         }
         setStats((prev) => ({ ...prev, totalPatients: 142 }));
       } catch (error) {
@@ -101,20 +123,17 @@ const DoctorDashboard = () => {
     };
     fetchDoctorData();
   }, []);
-  // ... (Keep the rest of the JSX exactly as provided)
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
-  }
 
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-300 overflow-hidden">
       <DoctorSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 md:px-8 py-4 flex justify-between items-center z-10 shrink-0 transition-colors duration-300">
           <div className="flex items-center gap-4">
@@ -127,13 +146,11 @@ const DoctorDashboard = () => {
               {activeTab.replace("-", " ")}
             </h1>
           </div>
-
           <div className="flex items-center gap-4 md:gap-6">
             <button className="text-gray-400 hover:text-primary transition-colors relative">
               <Bell className="w-6 h-6" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
             </button>
-
             <div
               onClick={() => navigate("/doctor-dashboard/profile")}
               className="flex items-center gap-3 pl-4 md:pl-6 border-l border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-75 transition-opacity">
@@ -212,31 +229,36 @@ const DoctorDashboard = () => {
                         View Calendar <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
-
                     <div className="space-y-4">
-                      {todayAppointments.map((apt) => (
-                        <div
-                          key={apt._id}
-                          className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold">
-                              {apt.patientName.charAt(0)}
+                      {todayAppointments.map((apt) => {
+                        // 🔴 FIX: Safely extract the patient's name from either the backend populated object or the fallback dummy data
+                        const patientName =
+                          apt.patient?.fullName || apt.patientName || "Patient";
+                        return (
+                          <div
+                            key={apt._id}
+                            className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold">
+                                {patientName.charAt(0)}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-900 dark:text-white">
+                                  {patientName}
+                                </h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />{" "}
+                                  {apt.time || "Time TBD"} •{" "}
+                                  {apt.type || "Consultation"}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 dark:text-white">
-                                {apt.patientName}
-                              </h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {apt.time} •{" "}
-                                {apt.type}
-                              </p>
-                            </div>
+                            <button className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary-dark transition-colors">
+                              Join
+                            </button>
                           </div>
-                          <button className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary-dark transition-colors">
-                            Join
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -253,7 +275,6 @@ const DoctorDashboard = () => {
                         Review All <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
-
                     <div className="space-y-4">
                       {pendingTriage.map((triage) => (
                         <div
@@ -264,17 +285,17 @@ const DoctorDashboard = () => {
                               {triage.symptom}
                             </h4>
                             <span
-                              className={`px-2 py-1 rounded text-xs font-bold ${
-                                triage.severity >= 7
-                                  ? "bg-red-100 text-red-600 dark:bg-red-500/10"
-                                  : "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/10"
-                              }`}>
+                              className={`px-2 py-1 rounded text-xs font-bold ${triage.severity >= 7 ? "bg-red-100 text-red-600 dark:bg-red-500/10" : "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/10"}`}>
                               Severity: {triage.severity}/10
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                            <span>{triage.patientName}</span>
-                            <span>{triage.timeAgo}</span>
+                            <span>
+                              {triage.patient?.fullName ||
+                                triage.patientName ||
+                                "Anonymous"}
+                            </span>
+                            <span>{triage.timeAgo || "Recently"}</span>
                           </div>
                         </div>
                       ))}
@@ -284,29 +305,9 @@ const DoctorDashboard = () => {
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-8">
-              <div className="max-w-6xl mx-auto space-y-8">
-                {activeTab === "overview" && (
-                  <div className="space-y-8 animate-fade-in-up">
-                    {/* <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
-                      <Activity className="w-10 h-10 text-gray-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 capitalize">
-                      Doctor {activeTab.replace("-", " ")} Module
-                    </h2>
-                    <p className="text-gray-500 dark:text-gray-400 max-w-md">
-                      The {activeTab.replace("-", " ")} interface is currently
-                      being built and wired to the Express backend.
-                    </p>{" "} */}
-                  </div>
-                )}
-
-                {/* 2. DYNAMIC COMPONENT RENDERING */}
-                {activeTab === "appointments" && <DoctorAppointments />}
-                {activeTab === "patients" && <DoctorPatients />}
-                {activeTab === "wadi-triage" && <DoctorTriage />}
-              </div>
-            </div>
+            {activeTab === "appointments" && <DoctorAppointments />}
+            {activeTab === "patients" && <DoctorPatients />}
+            {activeTab === "wadi-triage" && <DoctorTriage />}
           </div>
         </div>
       </main>

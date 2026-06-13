@@ -4,92 +4,78 @@ const Doctor = require("../model/doctor.model");
 const sendEmail = require("../service/sendEmail");
 
 // -----------------------------------------
-// @route   POST /api/v1/patient/book
-// @desc    Book appointment & generate Stripe Checkout URL
-// -----------------------------------------
 exports.bookAppointment = async (req, res) => {
   try {
-    const { specialistId, symptomLogId, appointmentDate } = req.body;
+    console.log("📅 BOOKING REQUEST RECEIVED:", req.body);
+    console.log("👤 PATIENT ID:", req.user.id);
 
-    if (!specialistId || !appointmentDate) {
-      return res
-        .status(400)
-        .json({ error: "Specialist ID and date are required." });
+    const { specialist, specialistId, appointmentDate, time, type } = req.body;
+    const doctorId = specialist || specialistId;
+
+    if (!doctorId || !appointmentDate || !time) {
+      return res.status(400).json({ error: "Specialist ID, date, and time are required." });
     }
 
-    // 1. Fetch the doctor to get their consultation fee
-    const doctor = await Doctor.findById(specialistId);
-    if (!doctor || !doctor.isApprovedByAdmin) {
-      return res
-        .status(404)
-        .json({ error: "Doctor not found or unavailable." });
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ error: "Doctor not found." });
     }
 
-    // 2. Prevent double booking for this exact slot
-    // ... inside exports.bookAppointment ...
+    // Safely parse the date to prevent Mongoose Cast Errors
+    const parsedDate = new Date(appointmentDate + "T00:00:00.000Z");
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format." });
+    }
 
-  
+    // Check double booking
+    const startOfDay = new Date(appointmentDate + "T00:00:00.000Z");
+    const endOfDay = new Date(appointmentDate + "T23:59:59.999Z");
+
     const existingBooking = await Appointment.findOne({
       specialist: doctorId,
-      appointmentDate: new Date(appointmentDate),
+      appointmentDate: { $gte: startOfDay, $lte: endOfDay },
       time: time,
       status: { $in: ["pending", "confirmed"] },
     });
 
     if (existingBooking) {
-      return res.status(400).json({
-        error:
-          "This time slot was just booked by another patient. Please select a different time.",
-      });
+      console.log("⚠️ DOUBLE BOOKING ATTEMPTED FOR:", time);
+      return res.status(400).json({ error: "This time slot is already booked. Please select another." });
     }
 
-    // ... proceed to create the appointment ...
-
-    // 3. Create a pending appointment in the database
+    // 🔴 IMPORTANT: Only include fields that exist in your Appointment model!
+    // If your model requires 'clinicName', 'fee', or 'location', add them here, otherwise Mongoose will crash.
     const newAppointment = await Appointment.create({
       patient: req.user.id,
-      specialist: specialistId,
-      symptoms: symptomLogId || null,
-      appointmentDate,
-      status: "pending",
-      paymentStatus: "unpaid",
+      specialist: doctorId,
+      appointmentDate: parsedDate,
+      time: time,
+      type: type || "Online Video Consult",
+      status: "pending", // or "confirmed"
+      // paymentStatus: "unpaid", // Uncomment if your schema has this
     });
 
-    // 4. Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      customer_email: req.user.email, // Auto-fills the Stripe form
-      line_items: [
-        {
-          price_data: {
-            currency: "ngn", // Change to usd, gbp, etc. depending on your market
-            product_data: {
-              name: `Eye Consultation with Dr. ${doctor.fullName}`,
-              description: `${doctor.speciality} at ${doctor.clinicName}`,
-            },
-            unit_amount: doctor.consultationFee * 100, // Stripe expects amounts in cents/kobo
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      // Stripe redirects here after success or cancellation
-      success_url: `https://projectoju.com/booking/success?appointment_id=${newAppointment._id}`,
-      cancel_url: `https://projectoju.com/booking/cancel?appointment_id=${newAppointment._id}`,
-      // Pass the appointment ID so Stripe remembers what this payment is for
-      metadata: {
-        appointmentId: newAppointment._id.toString(),
-      },
-    });
+    console.log("✅ APPOINTMENT SAVED TO DB:", newAppointment._id);
 
     res.status(201).json({
-      message: "Booking initiated. Redirecting to secure checkout.",
-      checkoutUrl: session.url, // React frontend redirects the user to this URL
+      message: "Booking placed successfully!",
       data: newAppointment,
     });
+
   } catch (error) {
-    console.error("Booking Error:", error);
-    res.status(500).json({ error: "Server error during booking process." });
+    console.error("❌ BOOKING CRASHED:", error);
+    
+    // Catch Mongoose Validation Errors specifically and send them to the frontend
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ error: `Validation failed: ${messages.join(", ")}` });
+    }
+
+    if (error.name === "CastError") {
+      return res.status(400).json({ error: `Invalid ID format: ${error.message}` });
+    }
+
+    res.status(500).json({ error: "Server error while booking. Check backend terminal for details." });
   }
 };
 

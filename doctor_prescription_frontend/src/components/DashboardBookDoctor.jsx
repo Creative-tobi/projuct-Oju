@@ -8,18 +8,25 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import api from "../api/axios";
 
 const DashboardBookDoctor = () => {
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Booking Workflow States
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
-  const [slots, setSlots] = useState({ available: [], booked: [], day: "" });
+  const [slotsData, setSlotsData] = useState({
+    available: [],
+    booked: [],
+    all: [],
+  });
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState("");
 
@@ -31,13 +38,15 @@ const DashboardBookDoctor = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await api.get("/doctors"); // Public route
+        const response = await api.get("/patient/doctors");
         if (response.data && response.data.data) {
           setDoctors(response.data.data);
+          setFilteredDoctors(response.data.data);
         } else {
           loadFallbackDoctors();
         }
       } catch (error) {
+        console.error("Backend not ready, loading dummy doctors.", error);
         loadFallbackDoctors();
       } finally {
         setIsLoading(false);
@@ -46,21 +55,29 @@ const DashboardBookDoctor = () => {
     fetchDoctors();
   }, []);
 
-  // 🔴 Fetch Slots when Date Changes
+  // 🔴 NEW: Fetch Slots when Date Changes
   useEffect(() => {
     if (selectedDoctor && selectedDate) {
       const fetchSlots = async () => {
         setIsLoadingSlots(true);
-        setSlots({ available: [], booked: [], day: "" });
-        setSelectedSlot(""); // Reset selected slot
+        setSlotsData({ available: [], booked: [], all: [] });
+        setSelectedSlot(""); // Reset selected slot when date changes
+        setErrorMsg("");
         try {
+          // Adjust URL if you mounted the route in doctor.router.js instead
           const res = await api.get(
-            `/doctors/${selectedDoctor._id}/slots?date=${selectedDate}`,
+            `/patient/doctors/${selectedDoctor._id}/slots?date=${selectedDate}`,
           );
-          setSlots(res.data);
-          if (res.data.message) setErrorMsg(res.data.message);
-          else setErrorMsg("");
+          setSlotsData({
+            available: res.data.availableSlots || [],
+            booked: res.data.bookedSlots || [],
+            all: res.data.allSlots || [],
+          });
+          if (res.data.message) {
+            setErrorMsg(res.data.message); // e.g., "Doctor is not available on Sunday"
+          }
         } catch (error) {
+          console.error("Error fetching slots", error);
           setErrorMsg("Failed to load schedule.");
         } finally {
           setIsLoadingSlots(false);
@@ -70,8 +87,23 @@ const DashboardBookDoctor = () => {
     }
   }, [selectedDoctor, selectedDate]);
 
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredDoctors(doctors);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = doctors.filter(
+        (doc) =>
+          doc.fullName?.toLowerCase().includes(query) ||
+          doc.speciality?.toLowerCase().includes(query) ||
+          doc.clinicName?.toLowerCase().includes(query),
+      );
+      setFilteredDoctors(filtered);
+    }
+  }, [searchQuery, doctors]);
+
   const loadFallbackDoctors = () => {
-    setDoctors([
+    const fallback = [
       {
         _id: "1",
         fullName: "Aisha Rahman",
@@ -86,29 +118,51 @@ const DashboardBookDoctor = () => {
         clinicName: "Lagos Eye Center",
         consultationFee: "8000",
       },
-    ]);
+    ];
+    setDoctors(fallback);
+    setFilteredDoctors(fallback);
   };
 
-  const handleBookingSubmit = async (e) => {
+      const handleBookingSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSlot) return;
-
+    
     setIsSubmitting(true);
     setErrorMsg("");
+    setSuccessMsg("");
+    
     try {
-      await api.post("/patient/book", {
-        doctorId: selectedDoctor._id,
+      const response = await api.post("/patient/book", {
+        specialist: selectedDoctor._id,
         appointmentDate: selectedDate,
         time: selectedSlot,
         type: bookingType,
       });
-      setSuccessMsg("Appointment successfully booked!");
-      setTimeout(() => navigate("/patient-dashboard/appointments"), 2500);
+      
+      // ✅ SUCCESS! The backend returned a 201 status
+      setSuccessMsg(response.data.message || "Appointment successfully booked!");
+      
+      // Reset the view so they can book another one later
+      setSelectedDoctor(null);
+      setSelectedDate("");
+      setSelectedSlot("");
+      
+      // Redirect to their appointments list after 3 seconds
+      setTimeout(() => navigate("/patient-dashboard/appointments"), 3000);
+      
     } catch (error) {
-      setErrorMsg(
-        error.response?.data?.error ||
-          "Booking failed. Slot might have been just taken.",
-      );
+      console.error("🔴 BOOKING FRONTEND ERROR:", error.response);
+      
+      // 🔴 FIXED: Extract the EXACT error message from the backend terminal
+      const backendError = error.response?.data?.error || error.response?.data?.message;
+      
+      if (backendError) {
+        setErrorMsg(backendError); // e.g., "Validation failed: clinicName is required"
+      } else if (error.request) {
+        setErrorMsg("No response from server. Check your backend terminal for crashes.");
+      } else {
+        setErrorMsg("An unexpected error occurred.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -117,7 +171,7 @@ const DashboardBookDoctor = () => {
   const resetBooking = () => {
     setSelectedDoctor(null);
     setSelectedDate("");
-    setSlots({ available: [], booked: [], day: "" });
+    setSlotsData({ available: [], booked: [], all: [] });
     setSelectedSlot("");
     setSuccessMsg("");
     setErrorMsg("");
@@ -137,47 +191,67 @@ const DashboardBookDoctor = () => {
           Find a Specialist
         </h2>
         <p className="text-gray-500 dark:text-gray-400">
-          Browse available professionals and book an open time slot instantly.
+          Browse our network of verified professionals and book an open time
+          slot instantly.
         </p>
       </div>
 
       {!selectedDoctor ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {doctors.map((doctor) => (
-            <div
-              key={doctor._id}
-              className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-xl shrink-0">
-                  {doctor.fullName?.charAt(0)}
+        <>
+          <div className="relative mb-8">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, specialty, or clinic..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-gray-900 dark:text-white transition-all"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredDoctors.length > 0 ? (
+              filteredDoctors.map((doctor) => (
+                <div
+                  key={doctor._id}
+                  className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-xl shrink-0">
+                      {doctor.fullName?.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white line-clamp-1">
+                        Dr. {doctor.fullName}
+                      </h3>
+                      <p className="text-sm text-primary font-medium">
+                        {doctor.speciality || "Ophthalmologist"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 mb-6 flex-1 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />{" "}
+                      {doctor.clinicName || "Digital Clinic"}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" /> Fee: ₦
+                      {doctor.consultationFee || "5000"}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDoctor(doctor)}
+                    className="w-full bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
+                    Select & Book
+                  </button>
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-white line-clamp-1">
-                    Dr. {doctor.fullName}
-                  </h3>
-                  <p className="text-sm text-primary font-medium">
-                    {doctor.speciality || "Ophthalmologist"}
-                  </p>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 text-gray-500 dark:text-gray-400">
+                <p>No specialists found matching your search.</p>
               </div>
-              <div className="space-y-2 mb-6 flex-1 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />{" "}
-                  {doctor.clinicName || "Digital Clinic"}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> Fee: ₦
-                  {doctor.consultationFee || "5000"}
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedDoctor(doctor)}
-                className="w-full bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
-                View Schedule & Book
-              </button>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        </>
       ) : (
         <div className="max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
@@ -229,7 +303,7 @@ const DashboardBookDoctor = () => {
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                     <Clock className="w-5 h-5 text-primary" /> 2. Select Time
-                    Slot ({slots.day || "Loading..."})
+                    Slot
                   </label>
 
                   {isLoadingSlots ? (
@@ -244,7 +318,7 @@ const DashboardBookDoctor = () => {
                   ) : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                       {/* Render Available Slots */}
-                      {slots.available.map((slot) => (
+                      {slotsData.available.map((slot) => (
                         <button
                           type="button"
                           key={slot}
@@ -259,7 +333,7 @@ const DashboardBookDoctor = () => {
                       ))}
 
                       {/* Render Booked Slots (Disabled) */}
-                      {slots.booked.map((slot) => (
+                      {slotsData.booked.map((slot) => (
                         <button
                           type="button"
                           key={slot}
@@ -268,6 +342,15 @@ const DashboardBookDoctor = () => {
                           {slot}
                         </button>
                       ))}
+
+                      {slotsData.available.length === 0 &&
+                        slotsData.booked.length === 0 &&
+                        !errorMsg && (
+                          <p className="col-span-full text-center text-gray-500 py-4">
+                            No slots generated. Check doctor's schedule
+                            settings.
+                          </p>
+                        )}
                     </div>
                   )}
                 </div>
@@ -298,8 +381,8 @@ const DashboardBookDoctor = () => {
                   </div>
 
                   {errorMsg && (
-                    <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm mb-4">
-                      {errorMsg}
+                    <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm mb-4 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" /> {errorMsg}
                     </div>
                   )}
 

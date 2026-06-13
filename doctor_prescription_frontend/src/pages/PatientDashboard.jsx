@@ -11,7 +11,6 @@ import {
   Menu,
 } from "lucide-react";
 import api from "../api/axios";
-
 import Sidebar from "../components/Sidebar";
 import DashboardWadi from "../components/DashboardWadi";
 import DashboardAppointments from "../components/DashboardAppointments";
@@ -22,7 +21,6 @@ const PatientDashboard = () => {
   const navigate = useNavigate();
   const { tab } = useParams();
   const activeTab = tab || "overview";
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState({
@@ -38,20 +36,44 @@ const PatientDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        const profileRes = await api.get("/profile/me"); // Updated route
+
+        // 🔴 FIX 1: Correct endpoint for profile
+        const profileRes = await api.get("/profile/me");
         if (profileRes.data && profileRes.data.data) {
+          const profileData = profileRes.data.data;
           setUser({
-            name: profileRes.data.data.fullName || "Patient",
-            email: profileRes.data.data.email || "",
+            name: profileData.fullName || "Patient",
+            email: profileData.email || "",
             avatar:
-              profileRes.data.data.profilePicture ||
-              profileRes.data.data.avatar ||
-              user.avatar,
+              profileData.avatar || profileData.profilePicture || user.avatar,
           });
         }
-        const aptRes = await api.get("/patient/appointments"); // Updated route
-        if (aptRes.data && aptRes.data.data && aptRes.data.data.length > 0) {
-          setUpcomingAppointment(aptRes.data.data[0]);
+
+        // 🔴 FIX 2: Correct endpoint for patient appointments
+        const aptRes = await api.get("/patient/appointments");
+        const aptData = aptRes.data?.data || aptRes.data || [];
+
+        if (aptData.length > 0) {
+          const apt = aptData[0];
+          setUpcomingAppointment({
+            doctor:
+              apt.specialist?.fullName || apt.doctor?.fullName || "Doctor",
+            specialty:
+              apt.specialist?.speciality ||
+              apt.doctor?.specialty ||
+              "Specialist",
+            date: new Date(apt.appointmentDate).toLocaleDateString(undefined, {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }),
+            time: apt.time,
+            type: apt.type,
+            image:
+              apt.specialist?.profilePicture ||
+              apt.doctor?.profilePicture ||
+              `https://ui-avatars.com/api/?name=${apt.specialist?.fullName || "Doctor"}`,
+          });
         } else {
           setUpcomingAppointment({
             doctor: "Dr. Aisha Rahman",
@@ -62,13 +84,26 @@ const PatientDashboard = () => {
             image: "https://i.pravatar.cc/150?img=43",
           });
         }
-        const assessmentRes = await api.get("/assessment/history"); 
-        if (
-          assessmentRes.data &&
-          assessmentRes.data.data &&
-          assessmentRes.data.data.length > 0
-        ) {
-          setRecentAssessments(assessmentRes.data.data);
+
+        // 🔴 FIX 3: Correct endpoint for assessment history
+        const assessmentRes = await api.get("/patient/assessment/history");
+        const assessData = assessmentRes.data?.data || assessmentRes.data || [];
+
+        if (assessData.length > 0) {
+          const mappedAssessments = assessData.map((a) => ({
+            _id: a._id,
+            date: new Date(a.createdAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            symptom: a.primarySymptoms,
+            severity:
+              a.investigationAnswers?.find((q) => q.question === "Severity")
+                ?.answer || "5",
+            status: a.status || "Pending",
+          }));
+          setRecentAssessments(mappedAssessments);
         } else {
           setRecentAssessments([
             {
@@ -81,7 +116,10 @@ const PatientDashboard = () => {
           ]);
         }
       } catch (error) {
-        console.error("Backend not fully connected yet, using fallback data.");
+        console.error(
+          "Backend not fully connected yet, using fallback data.",
+          error,
+        );
         setUser((prev) => ({ ...prev, name: "Patient" }));
         setUpcomingAppointment({
           doctor: "Dr. Aisha Rahman",
@@ -117,7 +155,6 @@ const PatientDashboard = () => {
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-300 overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 md:px-8 py-4 flex justify-between items-center z-10 shrink-0 transition-colors duration-300">
           <div className="flex items-center gap-4">
@@ -131,10 +168,9 @@ const PatientDashboard = () => {
                 ? "Patient Assessment"
                 : activeTab === "book"
                   ? "Book Specialist"
-                  : activeTab}
+                  : activeTab.replace("-", " ")}
             </h1>
           </div>
-
           <div className="flex items-center gap-4 md:gap-6">
             <button className="text-gray-400 hover:text-primary transition-colors relative">
               <Bell className="w-6 h-6" />
@@ -297,7 +333,11 @@ const PatientDashboard = () => {
 
             {activeTab === "book" && <DashboardBookDoctor />}
             {activeTab === "appointments" && <DashboardAppointments />}
-            {activeTab === "assessment" && <DashboardWadi />}
+            {activeTab === "assessment" && (
+              <DashboardWadi
+                setActiveTab={(t) => navigate(`/patient-dashboard/${t}`)}
+              />
+            )}
             {activeTab === "records" && <DashboardRecords />}
           </div>
         </div>

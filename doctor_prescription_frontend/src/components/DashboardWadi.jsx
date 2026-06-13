@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Eye,
   AlertCircle,
@@ -13,17 +14,19 @@ import {
   Loader2,
   CalendarPlus,
   Stethoscope,
-  FileQuestion,
+  FileText,
   Check,
+  Plus,
 } from "lucide-react";
 import api from "../api/axios";
 
 const DashboardWadi = ({ setActiveTab }) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [savedRecord, setSavedRecord] = useState(null);
 
-  // Comprehensive Clinical State
   const [assessment, setAssessment] = useState({
     symptom: "",
     affectedEye: "",
@@ -78,7 +81,6 @@ const DashboardWadi = ({ setActiveTab }) => {
     "Headaches",
     "Loss of Side Vision",
   ];
-
   const durations = [
     "Just started (Today)",
     "A few days",
@@ -110,40 +112,40 @@ const DashboardWadi = ({ setActiveTab }) => {
     setIsAnalyzing(true);
     setTimeout(() => {
       setIsAnalyzing(false);
-      setStep(7); // Final Results Step
-    }, 3000);
+      setStep(7);
+    }, 2500);
   };
-
-  // ... (Keep imports and state up to handleSaveAndBook)
 
   const handleSaveAndBook = async () => {
     setIsSaving(true);
     try {
       const clinicalNotes = `Eye Involved: ${assessment.affectedEye} | Onset: ${assessment.onset} | Associated: ${assessment.associatedSymptoms.join(", ") || "None"} | Contacts: ${assessment.medicalContext.wearsContacts ? "Yes" : "No"}, Diabetes: ${assessment.medicalContext.hasDiabetes ? "Yes" : "No"}, Allergies: ${assessment.medicalContext.hasAllergies ? "Yes" : "No"}, Trauma: ${assessment.medicalContext.recentTrauma ? "Yes" : "No"}`;
-      
-      // Format payload to match backend expectations: { primarySymptoms, investigationAnswers }
+
+      // 🔴 PERFECTLY MATCHES BACKEND symptoms.controller.js EXPECTATIONS
       const payload = {
         primarySymptoms: assessment.symptom,
         investigationAnswers: [
           { question: "Affected Eye", answer: assessment.affectedEye },
           { question: "Onset", answer: assessment.onset },
-          { question: "Associated Symptoms", answer: assessment.associatedSymptoms.join(", ") || "None" },
+          {
+            question: "Associated Symptoms",
+            answer: assessment.associatedSymptoms.join(", ") || "None",
+          },
           { question: "Duration", answer: assessment.duration },
           { question: "Severity", answer: assessment.severity.toString() },
-          { question: "Medical Context", answer: clinicalNotes }
-        ]
+          { question: "Medical Context", answer: clinicalNotes },
+        ],
       };
 
-      await api.post("/patient/assessment", payload); // Updated route & payload
-      setActiveTab("appointments");
+      const res = await api.post("/patient/assessment", payload);
+      setSavedRecord(res.data);
+      setStep(8);
     } catch (error) {
       console.error("Failed to save detailed assessment.", error);
-      setActiveTab("appointments");
     } finally {
       setIsSaving(false);
     }
   };
-// ... (Keep the rest of the JSX exactly as provided)
 
   useEffect(() => {
     if (step === 6) handleAnalyze();
@@ -151,7 +153,6 @@ const DashboardWadi = ({ setActiveTab }) => {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 md:p-10 transition-all duration-300">
-      {/* Dynamic Progress Indicator */}
       {step < 6 && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <button
@@ -162,7 +163,6 @@ const DashboardWadi = ({ setActiveTab }) => {
             <ArrowLeft className="w-4 h-4" />{" "}
             {step > 1 ? "Previous Step" : "Cancel Investigation"}
           </button>
-
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((dot) => (
               <div
@@ -173,7 +173,6 @@ const DashboardWadi = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* STEP 1: CHIEF COMPLAINT */}
       {step === 1 && (
         <div className="animate-fade-in-up">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -182,7 +181,6 @@ const DashboardWadi = ({ setActiveTab }) => {
           <p className="text-gray-500 dark:text-gray-400 mb-8">
             Select the main eye symptom you are currently experiencing.
           </p>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {primarySymptoms.map((item) => (
               <button
@@ -191,17 +189,9 @@ const DashboardWadi = ({ setActiveTab }) => {
                   setAssessment({ ...assessment, symptom: item.label });
                   setStep(2);
                 }}
-                className={`flex flex-col items-center justify-center text-center p-6 rounded-2xl border-2 transition-all group ${
-                  assessment.symptom === item.label
-                    ? "border-primary bg-primary/10"
-                    : "border-gray-100 dark:border-gray-700 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10"
-                }`}>
+                className={`flex flex-col items-center justify-center text-center p-6 rounded-2xl border-2 transition-all group ${assessment.symptom === item.label ? "border-primary bg-primary/10" : "border-gray-100 dark:border-gray-700 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10"}`}>
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-all mb-4 ${
-                    assessment.symptom === item.label
-                      ? "bg-primary text-white"
-                      : "bg-gray-50 dark:bg-gray-700 text-gray-400 group-hover:text-primary group-hover:scale-110"
-                  }`}>
+                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-all mb-4 ${assessment.symptom === item.label ? "bg-primary text-white" : "bg-gray-50 dark:bg-gray-700 text-gray-400 group-hover:text-primary group-hover:scale-110"}`}>
                   {item.icon}
                 </div>
                 <span className="font-semibold text-gray-800 dark:text-white">
@@ -213,7 +203,6 @@ const DashboardWadi = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* STEP 2: LOCATION & ONSET */}
       {step === 2 && (
         <div className="animate-fade-in-up max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -223,7 +212,6 @@ const DashboardWadi = ({ setActiveTab }) => {
             Tell us exactly where and how the {assessment.symptom.toLowerCase()}{" "}
             began.
           </p>
-
           <div className="space-y-8">
             <div>
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
@@ -236,17 +224,12 @@ const DashboardWadi = ({ setActiveTab }) => {
                     onClick={() =>
                       setAssessment({ ...assessment, affectedEye: eye })
                     }
-                    className={`flex-1 py-4 rounded-xl border-2 font-bold transition-all ${
-                      assessment.affectedEye === eye
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary"
-                    }`}>
+                    className={`flex-1 py-4 rounded-xl border-2 font-bold transition-all ${assessment.affectedEye === eye ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary"}`}>
                     {eye}
                   </button>
                 ))}
               </div>
             </div>
-
             <div>
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
                 How did this start?
@@ -264,17 +247,12 @@ const DashboardWadi = ({ setActiveTab }) => {
                         onset: onset.split(" ")[0],
                       })
                     }
-                    className={`flex-1 py-4 px-2 rounded-xl border-2 font-bold transition-all ${
-                      assessment.onset === onset.split(" ")[0]
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary"
-                    }`}>
+                    className={`flex-1 py-4 px-2 rounded-xl border-2 font-bold transition-all ${assessment.onset === onset.split(" ")[0] ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary"}`}>
                     {onset}
                   </button>
                 ))}
               </div>
             </div>
-
             <button
               disabled={!assessment.affectedEye || !assessment.onset}
               onClick={() => setStep(3)}
@@ -285,17 +263,14 @@ const DashboardWadi = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* STEP 3: ASSOCIATED SYMPTOMS */}
       {step === 3 && (
         <div className="animate-fade-in-up max-w-3xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Are you experiencing anything else?
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mb-8">
-            Select any additional issues accompanying your main symptom. (Select
-            all that apply)
+            Select any additional issues accompanying your main symptom.
           </p>
-
           <div className="flex flex-wrap gap-3 mb-10">
             {secondarySymptomsList.map((symp) => {
               const isSelected = assessment.associatedSymptoms.includes(symp);
@@ -303,18 +278,12 @@ const DashboardWadi = ({ setActiveTab }) => {
                 <button
                   key={symp}
                   onClick={() => toggleAssociatedSymptom(symp)}
-                  className={`px-5 py-3 rounded-full border-2 font-medium flex items-center gap-2 transition-all ${
-                    isSelected
-                      ? "border-primary bg-primary text-white shadow-md"
-                      : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary/50 hover:text-primary"
-                  }`}>
-                  {isSelected && <Check className="w-4 h-4" />}
-                  {symp}
+                  className={`px-5 py-3 rounded-full border-2 font-medium flex items-center gap-2 transition-all ${isSelected ? "border-primary bg-primary text-white shadow-md" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary/50 hover:text-primary"}`}>
+                  {isSelected && <Check className="w-4 h-4" />} {symp}
                 </button>
               );
             })}
           </div>
-
           <button
             onClick={() => setStep(4)}
             className="w-full max-w-2xl mx-auto bg-primary text-white py-4 rounded-xl font-bold hover:bg-primary-dark transition-all flex items-center justify-center gap-2">
@@ -323,13 +292,11 @@ const DashboardWadi = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* STEP 4: DURATION & SEVERITY */}
       {step === 4 && (
         <div className="animate-fade-in-up max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
             Duration and Intensity
           </h2>
-
           <div className="space-y-10">
             <div>
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
@@ -341,17 +308,12 @@ const DashboardWadi = ({ setActiveTab }) => {
                   <button
                     key={duration}
                     onClick={() => setAssessment({ ...assessment, duration })}
-                    className={`px-5 py-2.5 rounded-full border-2 font-medium transition-all ${
-                      assessment.duration === duration
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary"
-                    }`}>
+                    className={`px-5 py-2.5 rounded-full border-2 font-medium transition-all ${assessment.duration === duration ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary"}`}>
                     {duration}
                   </button>
                 ))}
               </div>
             </div>
-
             <div>
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary" /> Rate the severity
@@ -363,7 +325,10 @@ const DashboardWadi = ({ setActiveTab }) => {
                 max="10"
                 value={assessment.severity}
                 onChange={(e) =>
-                  setAssessment({ ...assessment, severity: e.target.value })
+                  setAssessment({
+                    ...assessment,
+                    severity: Number(e.target.value),
+                  })
                 }
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
               />
@@ -375,7 +340,6 @@ const DashboardWadi = ({ setActiveTab }) => {
                 <span>Unbearable</span>
               </div>
             </div>
-
             <button
               disabled={!assessment.duration}
               onClick={() => setStep(5)}
@@ -386,7 +350,6 @@ const DashboardWadi = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* STEP 5: MEDICAL CONTEXT */}
       {step === 5 && (
         <div className="animate-fade-in-up max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -396,7 +359,6 @@ const DashboardWadi = ({ setActiveTab }) => {
             This context is vital for our specialists to provide accurate
             triage.
           </p>
-
           <div className="space-y-4 mb-10">
             {[
               {
@@ -437,7 +399,6 @@ const DashboardWadi = ({ setActiveTab }) => {
               </div>
             ))}
           </div>
-
           <button
             onClick={() => setStep(6)}
             className="w-full bg-primary text-white py-4 rounded-xl font-bold hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30">
@@ -446,7 +407,6 @@ const DashboardWadi = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* STEP 6: ANALYZING */}
       {step === 6 && (
         <div className="text-center py-16 animate-fade-in-up">
           <div className="relative w-24 h-24 mx-auto mb-8">
@@ -463,7 +423,6 @@ const DashboardWadi = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* STEP 7: FINAL RESULT & SAVE */}
       {step === 7 && (
         <div className="text-center animate-fade-in-up max-w-2xl mx-auto py-8">
           <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -472,7 +431,6 @@ const DashboardWadi = ({ setActiveTab }) => {
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
             Investigation Complete
           </h2>
-
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-6 text-left mb-8 border border-gray-100 dark:border-gray-700">
             <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
               Based on your clinical intake reporting{" "}
@@ -481,23 +439,20 @@ const DashboardWadi = ({ setActiveTab }) => {
               <strong>{assessment.affectedEye.toLowerCase()}</strong>, lasting
               for <strong>{assessment.duration.toLowerCase()}</strong> at a
               severity level of <strong>{assessment.severity}/10</strong>, we
-              highly recommend consulting with a specialist to rule out
-              underlying optical conditions.
+              highly recommend consulting with a specialist.
             </p>
-            {assessment.medicalContext.wearsContacts ||
-            assessment.medicalContext.hasDiabetes ? (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 p-4 rounded-xl text-sm font-medium border border-yellow-200 dark:border-yellow-700/50">
+            {(assessment.medicalContext.wearsContacts ||
+              assessment.medicalContext.hasDiabetes) && (
+              <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 p-4 rounded-xl text-sm font-medium border border-yellow-200 dark:border-yellow-700/50">
                 <strong>Important Note:</strong> Your history of{" "}
                 {assessment.medicalContext.wearsContacts
                   ? "contact lens use "
-                  : ""}{" "}
+                  : ""}
                 {assessment.medicalContext.hasDiabetes ? "and diabetes" : ""}{" "}
-                has been flagged for the doctor as it can significantly impact
-                ocular health.
+                has been flagged for the doctor.
               </div>
-            ) : null}
+            )}
           </div>
-
           <button
             onClick={handleSaveAndBook}
             disabled={isSaving}
@@ -511,6 +466,78 @@ const DashboardWadi = ({ setActiveTab }) => {
               </>
             )}
           </button>
+        </div>
+      )}
+
+      {step === 8 && savedRecord && (
+        <div className="text-center animate-fade-in-up max-w-2xl mx-auto py-8">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-10 h-10 text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            Assessment Saved Successfully!
+          </h2>
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-6 text-left mb-8 border border-gray-100 dark:border-gray-700">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" /> Your Saved Record
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b border-gray-200 dark:border-gray-600 pb-2">
+                <span className="text-gray-500 dark:text-gray-400">
+                  Primary Symptom:
+                </span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {savedRecord.assessment?.primarySymptoms ||
+                    assessment.symptom}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-gray-200 dark:border-gray-600 pb-2">
+                <span className="text-gray-500 dark:text-gray-400">
+                  Recommended Specialist:
+                </span>
+                <span className="font-bold text-primary">
+                  {savedRecord.recommendation || "Optometrist"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">
+                  Severity:
+                </span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {assessment.severity}/10
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => navigate("/patient-dashboard/records")}
+              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-6 py-4 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all flex items-center justify-center gap-2">
+              <FileText className="w-5 h-5" /> View All Records
+            </button>
+            <button
+              onClick={() => {
+                setStep(1);
+                setSavedRecord(null);
+                setAssessment({
+                  symptom: "",
+                  affectedEye: "",
+                  onset: "",
+                  associatedSymptoms: [],
+                  duration: "",
+                  severity: 5,
+                  medicalContext: {
+                    wearsContacts: false,
+                    hasDiabetes: false,
+                    hasAllergies: false,
+                    recentTrauma: false,
+                  },
+                });
+              }}
+              className="flex-1 bg-primary text-white px-6 py-4 rounded-xl font-bold hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg">
+              <Plus className="w-5 h-5" /> Create Another Assessment
+            </button>
+          </div>
         </div>
       )}
     </div>

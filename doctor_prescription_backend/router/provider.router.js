@@ -3,6 +3,7 @@ const router = express.Router();
 const providerController = require("../controller/provider.controller");
 const { protect } = require("../middleware/auth.middleware");
 const { requireRole } = require("../middleware/role.middleware");
+const symptomsController = require("../controller/symptoms.controller");
 
 router.use(protect);
 router.use(requireRole("doctor"));
@@ -16,5 +17,7 @@ router.put("/schedule", providerController.updateSchedule);
 router.get("/triage", providerController.getTriageCases);
 router.get("/patients", providerController.getDoctorPatients);
 router.patch("/triage/:id/review", providerController.reviewTriageCase);
+
+router.patch("/triage/:id/review", symptomsController.reviewAssessment);
 
 module.exports = router;

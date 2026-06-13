@@ -20,6 +20,6 @@ router.get("/appointments", appointmentController.getPatientAppointments);
 // Doctor Discovery Routes
 router.get("/doctors", doctorController.getAllDoctors);
 router.get("/doctors/:id", doctorController.getDoctorProfile);
-
+router.get("/doctors/:id/slots", doctorController.getAvailableSlots);
 
 module.exports = router;

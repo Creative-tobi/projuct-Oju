@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Eye,
@@ -12,14 +12,13 @@ import {
   Sun,
   Loader2,
   UserPlus,
+  ShieldAlert,
 } from "lucide-react";
 
 const AssessmentPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  // Assessment State
   const [assessment, setAssessment] = useState({
     symptom: "",
     duration: "",
@@ -65,25 +64,26 @@ const AssessmentPage = () => {
 
   const handleAnalyze = () => {
     setIsAnalyzing(true);
-    // Simulate the Wadi investigation delay
     setTimeout(() => {
       setIsAnalyzing(false);
       setStep(4);
     }, 2500);
   };
 
+  useEffect(() => {
+    if (step === 3) handleAnalyze();
+  }, [step]);
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-300 py-12 px-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-300 py-12 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
-        {/* Header & Navigation */}
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex items-center justify-between mb-8 md:mb-12">
           <button
             onClick={() => (step > 1 ? setStep(step - 1) : navigate("/"))}
             className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-medium">
             <ArrowLeft className="w-4 h-4" />{" "}
             {step > 1 ? "Previous Step" : "Back to Home"}
           </button>
-
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
               <Eye className="text-white w-4 h-4" />
@@ -94,9 +94,8 @@ const AssessmentPage = () => {
           </div>
         </div>
 
-        {/* Progress Bar */}
         {step < 4 && (
-          <div className="mb-10">
+          <div className="mb-8 md:mb-10">
             <div className="flex justify-between text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
               <span>Primary Symptom</span>
               <span>Duration & Severity</span>
@@ -110,18 +109,15 @@ const AssessmentPage = () => {
           </div>
         )}
 
-        {/* Main Content Area */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-8 md:p-12 transition-all duration-300">
-          {/* STEP 1: SYMPTOMS */}
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-12 transition-all duration-300">
           {step === 1 && (
             <div className="animate-fade-in-up">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 What seems to be the issue?
               </h1>
               <p className="text-gray-500 dark:text-gray-400 mb-8">
                 Select the primary eye symptom you are currently experiencing.
               </p>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {symptoms.map((item) => (
                   <button
@@ -143,17 +139,15 @@ const AssessmentPage = () => {
             </div>
           )}
 
-          {/* STEP 2: DURATION & SEVERITY */}
           {step === 2 && (
             <div className="animate-fade-in-up">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 How long has this been happening?
               </h1>
               <p className="text-gray-500 dark:text-gray-400 mb-8">
                 Tell us about the duration and severity of your{" "}
                 {assessment.symptom.toLowerCase()}.
               </p>
-
               <div className="space-y-8">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
@@ -166,17 +160,12 @@ const AssessmentPage = () => {
                         onClick={() =>
                           setAssessment({ ...assessment, duration })
                         }
-                        className={`px-5 py-2.5 rounded-full border font-medium transition-all ${
-                          assessment.duration === duration
-                            ? "bg-primary border-primary text-white shadow-md"
-                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"
-                        }`}>
+                        className={`px-5 py-2.5 rounded-full border font-medium transition-all ${assessment.duration === duration ? "bg-primary border-primary text-white shadow-md" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary"}`}>
                         {duration}
                       </button>
                     ))}
                   </div>
                 </div>
-
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                     <Activity className="w-5 h-5 text-primary" /> Severity
@@ -200,7 +189,6 @@ const AssessmentPage = () => {
                     <span>Severe Pain</span>
                   </div>
                 </div>
-
                 <button
                   disabled={!assessment.duration}
                   onClick={() => setStep(3)}
@@ -211,7 +199,6 @@ const AssessmentPage = () => {
             </div>
           )}
 
-          {/* STEP 3: ANALYZING */}
           {step === 3 && (
             <div className="text-center py-12 animate-fade-in-up">
               <div className="relative w-24 h-24 mx-auto mb-8">
@@ -226,24 +213,17 @@ const AssessmentPage = () => {
                 Comparing your symptoms with our clinical database to find the
                 right specialist.
               </p>
-
-              {/* Auto-trigger the analysis */}
-              {React.useEffect(() => {
-                if (step === 3) handleAnalyze();
-              }, [step])}
             </div>
           )}
 
-          {/* STEP 4: RESULT & CALL TO ACTION (SIGN UP) */}
           {step === 4 && (
             <div className="text-center animate-fade-in-up">
               <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                 <ShieldAlert className="w-10 h-10 text-green-600 dark:text-green-400" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4">
                 Investigation Complete
               </h2>
-
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-6 text-left mb-8 border border-gray-100 dark:border-gray-700">
                 <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
                   Based on your report of{" "}
@@ -255,20 +235,21 @@ const AssessmentPage = () => {
                 </p>
                 <div className="flex items-center gap-3 text-primary font-medium bg-primary/10 p-4 rounded-xl">
                   <UserPlus className="w-5 h-5" />
-                  <span>We have matched you with 3 active specialists.</span>
+                  <span>We have matched you with active specialists.</span>
                 </div>
               </div>
-
               <p className="text-gray-600 dark:text-gray-400 mb-8">
-                Sign up now to save your Wadi assessment results and instantly
-                book an online or physical consultation.
+                Sign in to your existing account or create a new one to save
+                your Wadi assessment results and instantly book an online or
+                physical consultation.
               </p>
-
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                {/* 🔴 UPDATED: Explicitly mentions both Login and Register, routing to the unified /login page */}
                 <button
-                  onClick={() => navigate("/login")} // Takes them to the Auth page to register/login
+                  onClick={() => navigate("/login")}
                   className="bg-primary text-white px-8 py-3.5 rounded-xl font-bold hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30">
-                  Create Account to Consult <ArrowRight className="w-5 h-5" />
+                  Login or Register to Consult{" "}
+                  <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
             </div>

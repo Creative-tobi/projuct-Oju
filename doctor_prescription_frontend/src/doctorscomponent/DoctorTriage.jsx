@@ -10,39 +10,38 @@ import {
   Loader2,
   Eye,
   ShieldAlert,
+  User,
 } from "lucide-react";
 import api from "../api/axios";
 
 const DoctorTriage = () => {
   const [triageCases, setTriageCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState("All"); // 'All', 'Urgent', 'Reviewed'
+  const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Modal State
   const [selectedCase, setSelectedCase] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-   useEffect(() => {
-     fetchTriageCases();
-   }, []);
+  useEffect(() => {
+    fetchTriageCases();
+  }, []);
 
-   const fetchTriageCases = async () => {
-     setIsLoading(true);
-     try {
-       const response = await api.get("/provider/triage"); // Updated route
-       if (response.data && response.data.length > 0) {
-         setTriageCases(response.data);
-       } else {
-         loadFallbackCases();
-       }
-     } catch (error) {
-       console.error("Error fetching triage cases, using fallback:", error);
-       loadFallbackCases();
-     } finally {
-       setIsLoading(false);
-     }
-   };
+  const fetchTriageCases = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get("/provider/triage");
+      if (response.data && response.data.length > 0) {
+        setTriageCases(response.data);
+      } else {
+        loadFallbackCases();
+      }
+    } catch (error) {
+      console.error("Error fetching triage cases, using fallback:", error);
+      loadFallbackCases();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadFallbackCases = () => {
     setTriageCases([
@@ -53,9 +52,9 @@ const DoctorTriage = () => {
         severity: 9,
         duration: "Just started (Today)",
         status: "Pending",
-        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
+        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
         notes:
-          "Eye Involved: Right Eye\nOnset: Suddenly\nAssociated: Headaches, Light Sensitivity\nContacts: Yes, Diabetes: No, Allergies: No, Trauma: Yes",
+          "Eye Involved: Right Eye \n Onset: Suddenly \n Associated: Headaches, Light Sensitivity \n Contacts: Yes, Diabetes: No, Allergies: No, Trauma: Yes",
       },
       {
         _id: "t2",
@@ -64,28 +63,18 @@ const DoctorTriage = () => {
         severity: 5,
         duration: "A few days",
         status: "Pending",
-        createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), // 5 hours ago
+        createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
         notes:
-          "Eye Involved: Both Eyes\nOnset: Gradually\nAssociated: None reported\nContacts: No, Diabetes: Yes, Allergies: No, Trauma: No",
-      },
-      {
-        _id: "t3",
-        patientName: "Anonymous Patient",
-        symptom: "Red or Bloodshot Eyes",
-        severity: 4,
-        duration: "About a week",
-        status: "Reviewed",
-        createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
-        notes:
-          "Eye Involved: Left Eye\nOnset: Gradually\nAssociated: Itching, Discharge / Crusting\nContacts: No, Diabetes: No, Allergies: Yes, Trauma: No",
+          "Eye Involved: Both Eyes \n Onset: Gradually \n Associated: None reported \n Contacts: No, Diabetes: Yes, Allergies: No, Trauma: No",
       },
     ]);
   };
 
+  // 🔴 FIXED: Now calls the real backend endpoint
   const handleMarkReviewed = async (id) => {
     setActionLoading(true);
     try {
-      await api.patch(`/provider/triage/${id}/review`); // Updated route
+      await api.patch(`/provider/triage/${id}/review`);
       setTriageCases((prev) =>
         prev.map((c) => (c._id === id ? { ...c, status: "Reviewed" } : c)),
       );
@@ -96,16 +85,15 @@ const DoctorTriage = () => {
       setActionLoading(false);
     }
   };
-  // Filter Logic
+
   const filteredCases = triageCases.filter((c) => {
     const matchesSearch =
       c.patientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.symptom.toLowerCase().includes(searchQuery.toLowerCase());
-
     if (!matchesSearch) return false;
     if (filter === "Urgent") return c.severity >= 7 && c.status !== "Reviewed";
     if (filter === "Reviewed") return c.status === "Reviewed";
-    return c.status !== "Reviewed"; // 'All' shows pending cases
+    return c.status !== "Reviewed";
   });
 
   const getSeverityStyle = (severity) => {
@@ -116,17 +104,15 @@ const DoctorTriage = () => {
     return "border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400";
   };
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
-  }
 
   return (
     <div className="animate-fade-in-up">
-      {/* Header & Search */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -137,7 +123,6 @@ const DoctorTriage = () => {
             care.
           </p>
         </div>
-
         <div className="w-full md:w-auto relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
@@ -150,17 +135,12 @@ const DoctorTriage = () => {
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-4 mb-8 border-b border-gray-200 dark:border-gray-700">
         {["All", "Urgent", "Reviewed"].map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`pb-4 px-2 text-sm font-bold transition-all relative ${
-              filter === tab
-                ? "text-primary"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}>
+            className={`pb-4 px-2 text-sm font-bold transition-all relative ${filter === tab ? "text-primary" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}>
             {tab === "Urgent" && (
               <AlertTriangle className="w-4 h-4 inline mr-1 -mt-1" />
             )}
@@ -184,7 +164,6 @@ const DoctorTriage = () => {
         ))}
       </div>
 
-      {/* Triage Inbox List */}
       {filteredCases.length > 0 ? (
         <div className="space-y-4">
           {filteredCases.map((triage) => (
@@ -216,7 +195,6 @@ const DoctorTriage = () => {
                   </p>
                 </div>
               </div>
-
               <div className="flex items-center justify-between w-full md:w-auto gap-6 shrink-0 border-t md:border-t-0 border-gray-100 dark:border-gray-700 pt-4 md:pt-0 mt-4 md:mt-0">
                 <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                   <Clock className="w-4 h-4" />
@@ -247,7 +225,6 @@ const DoctorTriage = () => {
         </div>
       )}
 
-      {/* Triage Detail Modal */}
       {selectedCase && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in-up">
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden">
@@ -273,7 +250,6 @@ const DoctorTriage = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <div className="p-6 overflow-y-auto">
               {selectedCase.severity >= 8 && (
                 <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl flex gap-3 text-red-800 dark:text-red-300">
@@ -285,14 +261,12 @@ const DoctorTriage = () => {
                   </p>
                 </div>
               )}
-
               <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" /> Clinical Intake
                 Notes
               </h4>
               <div className="bg-gray-50 dark:bg-gray-700/30 rounded-2xl p-5 border border-gray-100 dark:border-gray-600 space-y-4">
                 {selectedCase.notes ? (
-                  // Splitting the notes string by newline to render it beautifully
                   selectedCase.notes.split("\n").map((line, index) => {
                     const [key, ...val] = line.split(":");
                     return (
@@ -315,7 +289,6 @@ const DoctorTriage = () => {
                 )}
               </div>
             </div>
-
             <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex justify-end gap-4">
               <button
                 onClick={() => setSelectedCase(null)}

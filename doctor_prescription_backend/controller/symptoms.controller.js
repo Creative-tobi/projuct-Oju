@@ -74,3 +74,30 @@ exports.getAssessmentHistory = async (req, res) => {
     res.status(500).json({ error: "Server error fetching history." });
   }
 };
+// ... (Keep existing submitAssessment and getAssessmentHistory)
+
+// -----------------------------------------
+// @route   PATCH /api/v1/provider/triage/:id/review
+// @desc    Doctor marks a patient's Wadi assessment as reviewed
+// -----------------------------------------
+exports.reviewAssessment = async (req, res) => {
+  try {
+    const assessment = await Symptom.findByIdAndUpdate(
+      req.params.id,
+      { status: "Reviewed" }, // Updates the status field
+      { new: true },
+    );
+
+    if (!assessment) {
+      return res.status(404).json({ error: "Assessment not found." });
+    }
+
+    res.status(200).json({
+      message: "Assessment reviewed successfully",
+      data: assessment,
+    });
+  } catch (error) {
+    console.error("Review Assessment Error:", error);
+    res.status(500).json({ error: "Server error reviewing assessment." });
+  }
+};

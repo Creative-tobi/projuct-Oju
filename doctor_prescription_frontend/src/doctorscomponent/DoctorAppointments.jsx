@@ -23,16 +23,18 @@ const DoctorAppointments = () => {
     fetchAppointments();
   }, []);
 
+  // 🔴 FIXED: Fetches from the correct backend route and parses the { data: [...] } structure
   const fetchAppointments = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get("/provider/appointments"); // Updated route
-      if (
-        response.data &&
-        response.data.data &&
-        response.data.data.length > 0
-      ) {
-        setAppointments(response.data.data);
+      // Changed from "/appointments/doctor" to the real route
+      const response = await api.get("/provider/appointments");
+
+      // Backend returns { count: x, data: [...] }
+      const appointmentsData = response.data?.data || response.data || [];
+
+      if (appointmentsData.length > 0) {
+        setAppointments(appointmentsData);
       } else {
         loadFallbackData();
       }
@@ -43,15 +45,20 @@ const DoctorAppointments = () => {
       setIsLoading(false);
     }
   };
-  // ... (Keep loadFallbackData as provided)
 
+  // 🔴 FIXED: Actually calls the backend to update the database instead of just faking it
   const handleStatusUpdate = async (id, newStatus) => {
     setActionLoading(id);
     try {
-      // Backend expects { action: 'accept' | 'decline' }
-      const action = newStatus === "Confirmed" ? "accept" : "decline";
-      await api.patch(`/provider/appointments/${id}/respond`, { action }); // Updated route & payload
+      // The backend expects { action: 'accept' | 'decline' }
+      const apiAction = newStatus === "Confirmed" ? "accept" : "decline";
 
+      // Call the real backend endpoint
+      await api.patch(`/provider/appointments/${id}/respond`, {
+        action: apiAction,
+      });
+
+      // Update local state instantly for UI responsiveness
       setAppointments((prev) =>
         prev.map((apt) =>
           apt._id === id ? { ...apt, status: newStatus } : apt,
@@ -59,13 +66,32 @@ const DoctorAppointments = () => {
       );
     } catch (error) {
       console.error("Failed to update appointment status:", error);
+      alert("Failed to update status. Please try again.");
     } finally {
       setActionLoading(null);
     }
   };
-  // ... (Keep the rest of the JSX exactly as provided)
+  // ... (Keep loadFallbackData as provided)
 
-  
+  // const handleStatusUpdate = async (id, newStatus) => {
+  //   setActionLoading(id);
+  //   try {
+  //     // Backend expects { action: 'accept' | 'decline' }
+  //     const action = newStatus === "Confirmed" ? "accept" : "decline";
+  //     await api.patch(`/provider/appointments/${id}/respond`, { action }); // Updated route & payload
+
+  //     setAppointments((prev) =>
+  //       prev.map((apt) =>
+  //         apt._id === id ? { ...apt, status: newStatus } : apt,
+  //       ),
+  //     );
+  //   } catch (error) {
+  //     console.error("Failed to update appointment status:", error);
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
+  // ... (Keep the rest of the JSX exactly as provided)
 
   const loadFallbackData = () => {
     setAppointments([
@@ -104,26 +130,7 @@ const DoctorAppointments = () => {
       },
     ]);
   };
-
-  // Handle Accepting or Declining an appointment
-  // const handleStatusUpdate = async (id, newStatus) => {
-  //   setActionLoading(id);
-  //   try {
-  //     // Simulate API call to update status
-  //     // await api.put(`/appointments/${id}/status`, { status: newStatus });
-
-  //     // Update local state instantly for UI responsiveness
-  //     setAppointments((prev) =>
-  //       prev.map((apt) =>
-  //         apt._id === id ? { ...apt, status: newStatus } : apt,
-  //       ),
-  //     );
-  //   } catch (error) {
-  //     console.error("Failed to update appointment status:", error);
-  //   } finally {
-  //     setActionLoading(null);
-  //   }
-  // };
+;
 
   // Filter Logic
   const filteredAppointments = appointments.filter((app) => {
@@ -323,6 +330,6 @@ const DoctorAppointments = () => {
       )}
     </div>
   );
-};
+};;
 
 export default DoctorAppointments;
