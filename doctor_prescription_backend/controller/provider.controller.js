@@ -1,8 +1,8 @@
 const Appointment = require("../model/appointment.model");
-const sendEmail = require("../service/sendEmail");
+const Symptom = require("../model/symptom.model"); // Required for Triage & History
 const Doctor = require("../model/doctor.model");
-const Symptom = require("../model/symptom.model");
-// const Appointment = require("../model/appointment.model");
+const sendEmail = require("../service/sendEmail");
+
 // -----------------------------------------
 // @route   GET /api/v1/provider/appointments
 // @desc    Get all appointments for the logged-in doctor
@@ -12,8 +12,7 @@ exports.getDoctorQueue = async (req, res) => {
     const appointments = await Appointment.find({ specialist: req.user.id })
       .populate("patient", "fullName email phone avatar")
       .populate("symptoms", "primarySymptoms recommendedSpecialist")
-      .sort({ appointmentDate: 1 }); // Ascending order
-
+      .sort({ appointmentDate: 1 });
     res.status(200).json({ count: appointments.length, data: appointments });
   } catch (error) {
     console.error("Fetch Queue Error:", error);
@@ -45,7 +44,6 @@ exports.getAppointmentDetails = async (req, res) => {
         .status(404)
         .json({ error: "Appointment request not found or unauthorized." });
     }
-
     res.status(200).json({ data: appointment });
   } catch (error) {
     res
@@ -56,17 +54,19 @@ exports.getAppointmentDetails = async (req, res) => {
 
 // -----------------------------------------
 // @route   PATCH /api/v1/provider/appointments/:id/respond
-// @desc    Doctor accepts or declines a booking
+// @desc    Doctor accepts, declines, or completes a booking
 // -----------------------------------------
 exports.respondToBooking = async (req, res) => {
   try {
-    const { action } = req.body; // Expecting 'accept' or 'decline'
+    const { action } = req.body; // Expecting 'accept', 'decline', or 'complete'
     const appointmentId = req.params.id;
 
-    if (!["accept", "decline"].includes(action)) {
+    if (!["accept", "decline", "complete"].includes(action)) {
       return res
         .status(400)
-        .json({ error: "Invalid action. Use 'accept' or 'decline'." });
+        .json({
+          error: "Invalid action. Use 'accept', 'decline', or 'complete'.",
+        });
     }
 
     const appointment = await Appointment.findOne({
@@ -77,47 +77,46 @@ exports.respondToBooking = async (req, res) => {
     if (!appointment)
       return res.status(404).json({ error: "Appointment not found." });
 
-    // Allow updating if it's currently pending
-    if (appointment.status !== "pending") {
-      return res
-        .status(400)
-        .json({ error: `Appointment is already ${appointment.status}.` });
+    let newStatus;
+
+    // Handle "Mark as Complete"
+    if (action === "complete") {
+      if (appointment.status !== "confirmed") {
+        return res
+          .status(400)
+          .json({
+            error: "Only confirmed appointments can be marked as completed.",
+          });
+      }
+      newStatus = "completed";
     }
-
-    let newStatus, subject;
-    const formattedDate = new Date(
-      appointment.appointmentDate,
-    ).toLocaleString();
-    const isAccepted = action === "accept";
-
-    newStatus = isAccepted ? "confirmed" : "cancelled";
-    subject = isAccepted
-      ? "Appointment Confirmed - Project Oju"
-      : "Appointment Declined - Project Oju";
+    // Handle Accept / Decline
+    else {
+      if (appointment.status !== "pending") {
+        return res
+          .status(400)
+          .json({ error: `Appointment is already ${appointment.status}.` });
+      }
+      newStatus = action === "accept" ? "confirmed" : "cancelled";
+    }
 
     appointment.status = newStatus;
     await appointment.save();
 
-    // HTML Email Generation
-    const statusColor = isAccepted ? "#28a745" : "#dc3545";
-    const titleText = isAccepted
-      ? "Appointment Confirmed"
-      : "Appointment Declined";
+    // Send Email Notification to Patient
+    const formattedDate = new Date(
+      appointment.appointmentDate,
+    ).toLocaleString();
+    const isAccepted = action === "accept" || action === "complete";
+    const subject = isAccepted
+      ? "Appointment Update - Project Oju"
+      : "Appointment Declined - Project Oju";
 
     const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; border-top: 5px solid ${statusColor};">
-        <h2 style="color: ${statusColor}; text-align: center;">${titleText}</h2>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; border-top: 5px solid ${isAccepted ? "#28a745" : "#dc3545"};">
+        <h2 style="color: ${isAccepted ? "#28a745" : "#dc3545"}; text-align: center;">${isAccepted ? "Appointment Confirmed" : "Appointment Declined"}</h2>
         <p style="font-size: 16px; color: #333;">Hello ${appointment.patient.fullName},</p>
-        
-        ${
-          isAccepted
-            ? `<p style="font-size: 16px; color: #333;">Your eye care appointment has been confirmed by the clinic.</p>
-             <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
-               <p style="margin: 5px 0;"><strong>Date & Time:</strong> ${formattedDate}</p>
-             </div>`
-            : `<p style="font-size: 16px; color: #333;">Unfortunately, the specialist had to decline your appointment request for <strong>${formattedDate}</strong> due to schedule constraints. If you made a payment, it will be refunded automatically within 3-5 business days.</p>`
-        }
-        
+        <p style="font-size: 16px; color: #333;">Your appointment scheduled for <strong>${formattedDate}</strong> has been updated to: <strong>${newStatus}</strong>.</p>
         <p style="font-size: 14px; color: #666;">Stay healthy,<br/><strong>The Oju Team</strong></p>
       </div>
     `;
@@ -138,6 +137,7 @@ exports.respondToBooking = async (req, res) => {
     res.status(500).json({ error: "Server error responding to booking." });
   }
 };
+
 // -----------------------------------------
 // @route   PUT /api/v1/provider/schedule
 // @desc    Doctor updates their availability/schedule
@@ -145,41 +145,32 @@ exports.respondToBooking = async (req, res) => {
 exports.updateSchedule = async (req, res) => {
   try {
     const { days, startTime, endTime } = req.body;
-
-    // Validate the input
     if (!days || !Array.isArray(days)) {
       return res
         .status(400)
         .json({ error: "Please provide an array of working days." });
     }
-
-    // Find the logged-in doctor
     const doctor = await Doctor.findById(req.user.id);
-
-    if (!doctor) {
+    if (!doctor)
       return res.status(404).json({ error: "Doctor profile not found." });
-    }
 
-    // Update the availability object
     doctor.availability = {
       days,
       startTime: startTime || doctor.availability.startTime,
       endTime: endTime || doctor.availability.endTime,
     };
-
     await doctor.save();
-
-    res.status(200).json({
-      message: "Schedule updated successfully.",
-      availability: doctor.availability,
-    });
+    res
+      .status(200)
+      .json({
+        message: "Schedule updated successfully.",
+        availability: doctor.availability,
+      });
   } catch (error) {
     console.error("Update Schedule Error:", error);
     res.status(500).json({ error: "Server error updating schedule." });
   }
 };
-
-
 
 // -----------------------------------------
 // @route   GET /api/v1/provider/triage
@@ -192,7 +183,6 @@ exports.getTriageCases = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50);
 
-    // Map backend data to the frontend's expected shape
     const formattedCases = cases.map((c) => {
       const severityAns = c.investigationAnswers?.find(
         (a) => a.question === "Severity",
@@ -211,12 +201,11 @@ exports.getTriageCases = async (req, res) => {
         symptom: c.primarySymptoms,
         severity: parseInt(severityAns?.answer || 5),
         duration: durationAns?.answer || "Unknown",
-        status: "Pending",
+        status: c.status || "Pending",
         createdAt: c.createdAt,
         notes: notes,
       };
     });
-
     res.status(200).json(formattedCases);
   } catch (error) {
     console.error("Fetch Triage Error:", error);
@@ -234,7 +223,6 @@ exports.getDoctorPatients = async (req, res) => {
       .populate("patient", "fullName email phone avatar dob gender")
       .sort({ appointmentDate: -1 });
 
-    // Extract unique patients to avoid duplicates in the directory
     const uniquePatients = [];
     const map = new Map();
     for (const item of appointments) {
@@ -246,7 +234,6 @@ exports.getDoctorPatients = async (req, res) => {
         });
       }
     }
-
     res.status(200).json(uniquePatients);
   } catch (error) {
     console.error("Fetch Patients Error:", error);
@@ -260,13 +247,37 @@ exports.getDoctorPatients = async (req, res) => {
 // -----------------------------------------
 exports.reviewTriageCase = async (req, res) => {
   try {
-    // Note: If your Symptom model has a 'status' field, you can update it here.
-    // For now, we return success to satisfy the frontend flow.
+    const assessment = await Symptom.findByIdAndUpdate(
+      req.params.id,
+      { status: "Reviewed" },
+      { new: true },
+    );
+    if (!assessment)
+      return res.status(404).json({ error: "Assessment not found." });
     res
       .status(200)
-      .json({ message: "Triage case marked as reviewed successfully." });
+      .json({ message: "Assessment reviewed successfully", data: assessment });
   } catch (error) {
     console.error("Review Triage Error:", error);
     res.status(500).json({ error: "Server error updating triage status." });
+  }
+};
+
+// -----------------------------------------
+// @route   GET /api/v1/provider/patients/:id/history
+// @desc    Get a specific patient's medical history
+// -----------------------------------------
+exports.getPatientHistory = async (req, res) => {
+  try {
+    const assessments = await Symptom.find({ patient: req.params.id }).sort({
+      createdAt: -1,
+    });
+    const appointments = await Appointment.find({
+      patient: req.params.id,
+    }).sort({ appointmentDate: -1 });
+    res.status(200).json({ assessments, appointments });
+  } catch (error) {
+    console.error("Fetch Patient History Error:", error);
+    res.status(500).json({ error: "Server error fetching patient history." });
   }
 };

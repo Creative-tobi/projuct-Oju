@@ -26,29 +26,32 @@ const LandingPage = () => {
   const [isSpecialtyDropdownOpen, setIsSpecialtyDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // 🔴 NEW: Mobile menu state
 
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        const response = await api.get("/patient/doctors");
-        if (response.data && response.data.data) {
-          const formattedDoctors = response.data.data.map((doc) => ({
-            id: doc._id,
-            fullName: doc.fullName,
-            title: doc.speciality || "Ophthalmologist",
-            profilePicture: doc.profilePicture || "",
-            experience: doc.experience || "5",
-            clinicName: doc.clinicName || "Oju Vision Care",
-            fees: doc.consultationFee || "5000",
-          }));
-          setDbDoctors(formattedDoctors);
-        }
-      } catch (error) {
-        console.log("Falling back to dummy data.");
-      }
-    };
-    fetchDoctors();
-  }, []);
+    useEffect(() => {
+      const fetchDoctors = async () => {
+        try {
+          // 🔴 FIXED: Changed from "/auth/doctors" to the correct public route
+          const response = await api.get("/patient/doctors");
 
+          // Backend returns { count: x, data: [...] }
+          if (response.data && response.data.data) {
+            const formattedDoctors = response.data.data.map((doc) => ({
+              id: doc._id,
+              fullName: doc.fullName,
+              title: doc.speciality || "Ophthalmologist",
+              profilePicture: doc.profilePicture || "",
+              experience: doc.experience || "5",
+              clinicName: doc.clinicName || "Oju Vision Care",
+              fees: doc.consultationFee || "5000",
+            }));
+            setDbDoctors(formattedDoctors);
+          }
+        } catch (error) {
+          console.log("Falling back to dummy data.");
+        }
+      };
+      fetchDoctors();
+    }, []);
+    
   const dummyDoctors = [
     {
       id: "dummy1",

@@ -4,7 +4,7 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
-
+const notificationRoutes = require("./router/notification.router");
 // Import Route Files
 const authRoutes = require("./router/auth.router");
 const patientRoutes = require("./router/patient.router");
@@ -30,6 +30,7 @@ app.use("/api/v1/doctors", doctorRoutes);
 app.use("/api/v1/provider", providerRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/profile", profileRoutes)
+app.use("/api/v1/notifications", notificationRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

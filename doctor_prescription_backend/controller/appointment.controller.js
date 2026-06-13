@@ -2,6 +2,9 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const Appointment = require("../model/appointment.model");
 const Doctor = require("../model/doctor.model");
 const sendEmail = require("../service/sendEmail");
+const Patient = require("../model/patient.model");
+const { createNotification } = require("./notification.controller");
+
 
 // -----------------------------------------
 exports.bookAppointment = async (req, res) => {
@@ -13,7 +16,9 @@ exports.bookAppointment = async (req, res) => {
     const doctorId = specialist || specialistId;
 
     if (!doctorId || !appointmentDate || !time) {
-      return res.status(400).json({ error: "Specialist ID, date, and time are required." });
+      return res
+        .status(400)
+        .json({ error: "Specialist ID, date, and time are required." });
     }
 
     const doctor = await Doctor.findById(doctorId);
@@ -40,7 +45,11 @@ exports.bookAppointment = async (req, res) => {
 
     if (existingBooking) {
       console.log("⚠️ DOUBLE BOOKING ATTEMPTED FOR:", time);
-      return res.status(400).json({ error: "This time slot is already booked. Please select another." });
+      return res
+        .status(400)
+        .json({
+          error: "This time slot is already booked. Please select another.",
+        });
     }
 
     // 🔴 IMPORTANT: Only include fields that exist in your Appointment model!
@@ -62,6 +71,17 @@ exports.bookAppointment = async (req, res) => {
       data: newAppointment,
     });
 
+    // Notify the Doctor
+    const patient = await Patient.findById(req.user.id);
+    const patientName = patient ? patient.fullName : "A patient";
+
+    await createNotification(
+      doctorId,
+      "doctor",
+      `New booking request from ${patientName} for ${parsedDate.toLocaleDateString()} at ${time}.`,
+      "booking_request",
+      newAppointment._id,
+    );
   } catch (error) {
     console.error("❌ BOOKING CRASHED:", error);
     

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import NotificationBell from "../components/NotificationBell"; // (or "../components/NotificationBell" depending on folder)
 import {
   Plus,
   Clock,
@@ -172,10 +173,7 @@ const PatientDashboard = () => {
             </h1>
           </div>
           <div className="flex items-center gap-4 md:gap-6">
-            <button className="text-gray-400 hover:text-primary transition-colors relative">
-              <Bell className="w-6 h-6" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
-            </button>
+            <NotificationBell />
             <div
               onClick={() => navigate("/patient-dashboard/profile")}
               className="flex items-center gap-3 pl-4 md:pl-6 border-l border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-75 transition-opacity">

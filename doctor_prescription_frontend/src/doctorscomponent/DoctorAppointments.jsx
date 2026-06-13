@@ -15,22 +15,17 @@ import api from "../api/axios";
 const DoctorAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState("Upcoming"); // 'Upcoming', 'Pending', 'Past'
-  const [actionLoading, setActionLoading] = useState(null); // ID of appointment being updated
+  const [filter, setFilter] = useState("Upcoming");
+  const [actionLoading, setActionLoading] = useState(null);
 
-  // ... (Keep imports and state)
   useEffect(() => {
     fetchAppointments();
   }, []);
 
-  // 🔴 FIXED: Fetches from the correct backend route and parses the { data: [...] } structure
   const fetchAppointments = async () => {
     setIsLoading(true);
     try {
-      // Changed from "/appointments/doctor" to the real route
       const response = await api.get("/provider/appointments");
-
-      // Backend returns { count: x, data: [...] }
       const appointmentsData = response.data?.data || response.data || [];
 
       if (appointmentsData.length > 0) {
@@ -45,53 +40,6 @@ const DoctorAppointments = () => {
       setIsLoading(false);
     }
   };
-
-  // 🔴 FIXED: Actually calls the backend to update the database instead of just faking it
-  const handleStatusUpdate = async (id, newStatus) => {
-    setActionLoading(id);
-    try {
-      // The backend expects { action: 'accept' | 'decline' }
-      const apiAction = newStatus === "Confirmed" ? "accept" : "decline";
-
-      // Call the real backend endpoint
-      await api.patch(`/provider/appointments/${id}/respond`, {
-        action: apiAction,
-      });
-
-      // Update local state instantly for UI responsiveness
-      setAppointments((prev) =>
-        prev.map((apt) =>
-          apt._id === id ? { ...apt, status: newStatus } : apt,
-        ),
-      );
-    } catch (error) {
-      console.error("Failed to update appointment status:", error);
-      alert("Failed to update status. Please try again.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-  // ... (Keep loadFallbackData as provided)
-
-  // const handleStatusUpdate = async (id, newStatus) => {
-  //   setActionLoading(id);
-  //   try {
-  //     // Backend expects { action: 'accept' | 'decline' }
-  //     const action = newStatus === "Confirmed" ? "accept" : "decline";
-  //     await api.patch(`/provider/appointments/${id}/respond`, { action }); // Updated route & payload
-
-  //     setAppointments((prev) =>
-  //       prev.map((apt) =>
-  //         apt._id === id ? { ...apt, status: newStatus } : apt,
-  //       ),
-  //     );
-  //   } catch (error) {
-  //     console.error("Failed to update appointment status:", error);
-  //   } finally {
-  //     setActionLoading(null);
-  //   }
-  // };
-  // ... (Keep the rest of the JSX exactly as provided)
 
   const loadFallbackData = () => {
     setAppointments([
@@ -117,29 +65,46 @@ const DoctorAppointments = () => {
         type: "In-Person Clinic Visit",
         status: "Pending",
       },
-      {
-        _id: "3",
-        patient: {
-          fullName: "Olasunkanmi",
-          profilePicture: "https://i.pravatar.cc/150?img=12",
-        },
-        appointmentDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-        time: "09:15 AM",
-        type: "Online Video Consult",
-        status: "Completed",
-      },
     ]);
   };
-;
 
-  // Filter Logic
+  // 🔴 REAL API CALL FOR STATUS UPDATES
+  const handleStatusUpdate = async (id, newStatus) => {
+    setActionLoading(id);
+    try {
+      // Map UI status to backend expected action
+      const apiAction =
+        newStatus === "Confirmed"
+          ? "accept"
+          : newStatus === "Completed"
+            ? "complete"
+            : "decline";
+
+      await api.patch(`/provider/appointments/${id}/respond`, {
+        action: apiAction,
+      });
+
+      // Update local state instantly for UI responsiveness
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt._id === id ? { ...apt, status: newStatus } : apt,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to update appointment status:", error);
+      alert("Failed to update status. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filteredAppointments = appointments.filter((app) => {
-    if (filter === "Upcoming") return app.status === "Confirmed";
-    if (filter === "Pending") return app.status === "Pending";
+    if (filter === "Upcoming") return app.status === "confirmed";
+    if (filter === "Pending") return app.status === "pending";
     return (
-      app.status === "Completed" ||
-      app.status === "Cancelled" ||
-      app.status === "Declined"
+      app.status === "completed" ||
+      app.status === "cancelled" ||
+      app.status === "declined"
     );
   });
 
@@ -153,7 +118,6 @@ const DoctorAppointments = () => {
 
   return (
     <div className="animate-fade-in-up">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -165,22 +129,17 @@ const DoctorAppointments = () => {
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-4 mb-8 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         {["Upcoming", "Pending", "Past"].map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`pb-4 px-2 text-sm font-bold transition-all relative whitespace-nowrap ${
-              filter === tab
-                ? "text-primary"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}>
+            className={`pb-4 px-2 text-sm font-bold transition-all relative whitespace-nowrap ${filter === tab ? "text-primary" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}>
             {tab}
             {tab === "Pending" &&
-              appointments.some((a) => a.status === "Pending") && (
+              appointments.some((a) => a.status === "pending") && (
                 <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
-                  {appointments.filter((a) => a.status === "Pending").length}
+                  {appointments.filter((a) => a.status === "pending").length}
                 </span>
               )}
             {filter === tab && (
@@ -190,129 +149,139 @@ const DoctorAppointments = () => {
         ))}
       </div>
 
-      {/* Appointments Grid */}
       {filteredAppointments.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredAppointments.map((appointment) => (
-            <div
-              key={appointment._id}
-              className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col">
-              {/* Patient Info */}
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <img
-                    src={
-                      appointment.patient?.profilePicture ||
-                      "https://ui-avatars.com/api/?name=" +
-                        (appointment.patient?.fullName || "Patient")
-                    }
-                    alt="Patient"
-                    className="w-14 h-14 rounded-full object-cover border-2 border-primary/10"
-                  />
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">
-                      {appointment.patient?.fullName || appointment.patientName}
-                    </h4>
-                    <button className="text-xs text-primary font-medium hover:underline flex items-center gap-1 mt-1">
-                      <User className="w-3 h-3" /> View Records
-                    </button>
+          {filteredAppointments.map((appointment) => {
+            const patientName =
+              appointment.patient?.fullName ||
+              appointment.patientName ||
+              "Patient";
+            const patientImage =
+              appointment.patient?.profilePicture ||
+              `https://ui-avatars.com/api/?name=${patientName}`;
+
+            return (
+              <div
+                key={appointment._id}
+                className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={patientImage}
+                      alt="Patient"
+                      className="w-14 h-14 rounded-full object-cover border-2 border-primary/10"
+                    />
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white">
+                        {patientName}
+                      </h4>
+                      <button className="text-xs text-primary font-medium hover:underline flex items-center gap-1 mt-1">
+                        <User className="w-3 h-3" /> View Records
+                      </button>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      appointment.status === "confirmed"
+                        ? "bg-green-100 text-green-700 dark:bg-green-500/10"
+                        : appointment.status === "pending"
+                          ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10"
+                          : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                    }`}>
+                    {appointment.status.charAt(0).toUpperCase() +
+                      appointment.status.slice(1)}
+                  </span>
+                </div>
+
+                <div className="space-y-4 mb-8 flex-1 bg-gray-50 dark:bg-gray-700/30 p-4 rounded-2xl">
+                  <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span className="font-medium">
+                      {new Date(appointment.appointmentDate).toLocaleDateString(
+                        undefined,
+                        {
+                          weekday: "short",
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        },
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                    <Clock className="w-5 h-5 text-primary" />
+                    <span className="font-medium">{appointment.time}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                    {appointment.type?.includes("Video") ? (
+                      <Video className="w-5 h-5 text-primary" />
+                    ) : (
+                      <MapPin className="w-5 h-5 text-primary" />
+                    )}
+                    <span className="font-medium">{appointment.type}</span>
                   </div>
                 </div>
 
-                {/* Status Badge */}
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    appointment.status === "Confirmed"
-                      ? "bg-green-100 text-green-700 dark:bg-green-500/10"
-                      : appointment.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10"
-                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                  }`}>
-                  {appointment.status}
-                </span>
-              </div>
-
-              {/* Appointment Details */}
-              <div className="space-y-4 mb-8 flex-1 bg-gray-50 dark:bg-gray-700/30 p-4 rounded-2xl">
-                <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  <span className="font-medium">
-                    {new Date(appointment.appointmentDate).toLocaleDateString(
-                      undefined,
-                      {
-                        weekday: "short",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      },
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  <Clock className="w-5 h-5 text-primary" />
-                  <span className="font-medium">{appointment.time}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  {appointment.type?.includes("Video") ? (
-                    <Video className="w-5 h-5 text-primary" />
+                <div className="flex gap-3 mt-auto">
+                  {appointment.status === "pending" ? (
+                    <>
+                      <button
+                        onClick={() =>
+                          handleStatusUpdate(appointment._id, "Confirmed")
+                        }
+                        disabled={actionLoading === appointment._id}
+                        className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
+                        {actionLoading === appointment._id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" /> Accept
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleStatusUpdate(appointment._id, "Declined")
+                        }
+                        disabled={actionLoading === appointment._id}
+                        className="flex-1 bg-red-100 text-red-600 dark:bg-red-500/10 py-3 rounded-xl font-bold hover:bg-red-200 dark:hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
+                        <X className="w-4 h-4" /> Decline
+                      </button>
+                    </>
+                  ) : appointment.status === "confirmed" ? (
+                    <>
+                      <button
+                        onClick={() =>
+                          handleStatusUpdate(appointment._id, "Completed")
+                        }
+                        disabled={actionLoading === appointment._id}
+                        className="flex-1 bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
+                        {actionLoading === appointment._id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" /> Mark as Complete
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleStatusUpdate(appointment._id, "Cancelled")
+                        }
+                        disabled={actionLoading === appointment._id}
+                        className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium disabled:opacity-70">
+                        Cancel
+                      </button>
+                    </>
                   ) : (
-                    <MapPin className="w-5 h-5 text-primary" />
+                    <button className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                      View Clinical Notes
+                    </button>
                   )}
-                  <span className="font-medium">{appointment.type}</span>
                 </div>
               </div>
-
-              {/* Action Buttons based on Status */}
-              <div className="flex gap-3 mt-auto">
-                {appointment.status === "Pending" ? (
-                  <>
-                    <button
-                      onClick={() =>
-                        handleStatusUpdate(appointment._id, "Confirmed")
-                      }
-                      disabled={actionLoading === appointment._id}
-                      className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
-                      {actionLoading === appointment._id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4" /> Accept
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleStatusUpdate(appointment._id, "Declined")
-                      }
-                      disabled={actionLoading === appointment._id}
-                      className="flex-1 bg-red-100 text-red-600 dark:bg-red-500/10 py-3 rounded-xl font-bold hover:bg-red-200 dark:hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2">
-                      <X className="w-4 h-4" /> Decline
-                    </button>
-                  </>
-                ) : appointment.status === "Confirmed" ? (
-                  <>
-                    <button className="flex-1 bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
-                      {appointment.type?.includes("Video")
-                        ? "Start Video Call"
-                        : "Mark Arrived"}
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleStatusUpdate(appointment._id, "Cancelled")
-                      }
-                      disabled={actionLoading === appointment._id}
-                      className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium">
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button className="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                    View Clinical Notes
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
@@ -330,6 +299,6 @@ const DoctorAppointments = () => {
       )}
     </div>
   );
-};;
+};
 
 export default DoctorAppointments;

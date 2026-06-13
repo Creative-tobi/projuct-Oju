@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Search,
+  MapPin,
   Calendar as CalendarIcon,
   Clock,
   Video,
-  MapPin,
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Search,
+  ArrowLeft,
+  Star,
+  Building,
+  Award,
 } from "lucide-react";
 import api from "../api/axios";
 
@@ -21,6 +25,7 @@ const DashboardBookDoctor = () => {
 
   // Booking Workflow States
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [isBooking, setIsBooking] = useState(false); // Controls Details View vs Booking Form
   const [selectedDate, setSelectedDate] = useState("");
   const [slotsData, setSlotsData] = useState({
     available: [],
@@ -55,16 +60,15 @@ const DashboardBookDoctor = () => {
     fetchDoctors();
   }, []);
 
-  // 🔴 NEW: Fetch Slots when Date Changes
+  // Fetch Slots when Date Changes
   useEffect(() => {
     if (selectedDoctor && selectedDate) {
       const fetchSlots = async () => {
         setIsLoadingSlots(true);
         setSlotsData({ available: [], booked: [], all: [] });
-        setSelectedSlot(""); // Reset selected slot when date changes
+        setSelectedSlot("");
         setErrorMsg("");
         try {
-          // Adjust URL if you mounted the route in doctor.router.js instead
           const res = await api.get(
             `/patient/doctors/${selectedDoctor._id}/slots?date=${selectedDate}`,
           );
@@ -110,6 +114,8 @@ const DashboardBookDoctor = () => {
         speciality: "Consultant Optometrist",
         clinicName: "Clear Vision Clinic",
         consultationFee: "5000",
+        experience: "12",
+        qualifications: "MBBS, FWACS",
       },
       {
         _id: "2",
@@ -117,52 +123,36 @@ const DashboardBookDoctor = () => {
         speciality: "Glaucoma Specialist",
         clinicName: "Lagos Eye Center",
         consultationFee: "8000",
+        experience: "15",
+        qualifications: "MD, FACS",
       },
     ];
     setDoctors(fallback);
     setFilteredDoctors(fallback);
   };
 
-      const handleBookingSubmit = async (e) => {
+  const handleBookingSubmit = async (e) => {
     e.preventDefault();
     if (!selectedSlot) return;
-    
+
     setIsSubmitting(true);
     setErrorMsg("");
-    setSuccessMsg("");
-    
     try {
-      const response = await api.post("/patient/book", {
+      // 🔴 FIXED: Sends 'specialist' instead of 'doctorId' to match backend model
+      await api.post("/patient/book", {
         specialist: selectedDoctor._id,
         appointmentDate: selectedDate,
         time: selectedSlot,
         type: bookingType,
       });
-      
-      // ✅ SUCCESS! The backend returned a 201 status
-      setSuccessMsg(response.data.message || "Appointment successfully booked!");
-      
-      // Reset the view so they can book another one later
-      setSelectedDoctor(null);
-      setSelectedDate("");
-      setSelectedSlot("");
-      
-      // Redirect to their appointments list after 3 seconds
-      setTimeout(() => navigate("/patient-dashboard/appointments"), 3000);
-      
+
+      setSuccessMsg("Appointment successfully booked!");
+      setTimeout(() => navigate("/patient-dashboard/appointments"), 2500);
     } catch (error) {
-      console.error("🔴 BOOKING FRONTEND ERROR:", error.response);
-      
-      // 🔴 FIXED: Extract the EXACT error message from the backend terminal
-      const backendError = error.response?.data?.error || error.response?.data?.message;
-      
-      if (backendError) {
-        setErrorMsg(backendError); // e.g., "Validation failed: clinicName is required"
-      } else if (error.request) {
-        setErrorMsg("No response from server. Check your backend terminal for crashes.");
-      } else {
-        setErrorMsg("An unexpected error occurred.");
-      }
+      setErrorMsg(
+        error.response?.data?.error ||
+          "Booking failed. Slot might have just been taken.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -170,6 +160,7 @@ const DashboardBookDoctor = () => {
 
   const resetBooking = () => {
     setSelectedDoctor(null);
+    setIsBooking(false);
     setSelectedDate("");
     setSlotsData({ available: [], booked: [], all: [] });
     setSelectedSlot("");
@@ -241,7 +232,7 @@ const DashboardBookDoctor = () => {
                   <button
                     onClick={() => setSelectedDoctor(doctor)}
                     className="w-full bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
-                    Select & Book
+                    View Profile & Book
                   </button>
                 </div>
               ))
@@ -252,7 +243,84 @@ const DashboardBookDoctor = () => {
             )}
           </div>
         </>
+      ) : !isBooking ? (
+        // 🔴 DOCTOR DETAILS VIEW
+        <div className="max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm animate-fade-in-up">
+          <button
+            onClick={() => setSelectedDoctor(null)}
+            className="text-gray-400 hover:text-primary font-medium mb-6 flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" /> Back to Specialists
+          </button>
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="w-full md:w-1/3 flex flex-col items-center md:items-start">
+              <img
+                src={
+                  selectedDoctor.profilePicture ||
+                  `https://ui-avatars.com/api/?name=${selectedDoctor.fullName}`
+                }
+                alt={selectedDoctor.fullName}
+                className="w-32 h-32 rounded-2xl object-cover border-4 border-primary/10 mb-4"
+              />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center md:text-left">
+                Dr. {selectedDoctor.fullName}
+              </h2>
+              <p className="text-primary font-semibold text-center md:text-left">
+                {selectedDoctor.speciality || "Ophthalmologist"}
+              </p>
+              <div className="flex items-center gap-1 mt-2 text-yellow-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-current" />
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-600">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">
+                    Experience
+                  </p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {selectedDoctor.experience || "5"}+ Years
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-600">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">
+                    Consultation Fee
+                  </p>
+                  <p className="text-lg font-bold text-primary">
+                    ₦{selectedDoctor.consultationFee || "5000"}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Building className="w-5 h-5 text-primary" /> Clinic /
+                  Hospital
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {selectedDoctor.clinicName || "Digital Clinic"}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-primary" /> Qualifications
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {selectedDoctor.qualifications ||
+                    "Board Certified in Ophthalmology and Optometry"}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsBooking(true)}
+                className="w-full bg-primary text-white py-4 rounded-xl font-bold hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30 mt-6">
+                Proceed to Book Appointment{" "}
+                <ArrowLeft className="w-5 h-5 rotate-180" />
+              </button>
+            </div>
+          </div>
+        </div>
       ) : (
+        // 🔴 BOOKING FORM WITH DYNAMIC SLOTS
         <div className="max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
             <div>
@@ -264,9 +332,9 @@ const DashboardBookDoctor = () => {
               </p>
             </div>
             <button
-              onClick={resetBooking}
+              onClick={() => setIsBooking(false)}
               className="text-gray-400 hover:text-primary font-medium">
-              Cancel
+              Back to Profile
             </button>
           </div>
 
@@ -317,7 +385,6 @@ const DashboardBookDoctor = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                      {/* Render Available Slots */}
                       {slotsData.available.map((slot) => (
                         <button
                           type="button"
@@ -331,8 +398,6 @@ const DashboardBookDoctor = () => {
                           {slot}
                         </button>
                       ))}
-
-                      {/* Render Booked Slots (Disabled) */}
                       {slotsData.booked.map((slot) => (
                         <button
                           type="button"
@@ -342,7 +407,6 @@ const DashboardBookDoctor = () => {
                           {slot}
                         </button>
                       ))}
-
                       {slotsData.available.length === 0 &&
                         slotsData.booked.length === 0 &&
                         !errorMsg && (
