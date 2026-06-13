@@ -24,34 +24,32 @@ const LandingPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSpecialty, setSearchSpecialty] = useState("All Specialists");
   const [isSpecialtyDropdownOpen, setIsSpecialtyDropdownOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // 🔴 NEW: Mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    useEffect(() => {
-      const fetchDoctors = async () => {
-        try {
-          // 🔴 FIXED: Changed from "/auth/doctors" to the correct public route
-          const response = await api.get("/patient/doctors");
-
-          // Backend returns { count: x, data: [...] }
-          if (response.data && response.data.data) {
-            const formattedDoctors = response.data.data.map((doc) => ({
-              id: doc._id,
-              fullName: doc.fullName,
-              title: doc.speciality || "Ophthalmologist",
-              profilePicture: doc.profilePicture || "",
-              experience: doc.experience || "5",
-              clinicName: doc.clinicName || "Oju Vision Care",
-              fees: doc.consultationFee || "5000",
-            }));
-            setDbDoctors(formattedDoctors);
-          }
-        } catch (error) {
-          console.log("Falling back to dummy data.");
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        // 🔴 FIXED: Correct public endpoint for fetching doctors
+        const response = await api.get("/patient/doctors");
+        if (response.data && response.data.data) {
+          const formattedDoctors = response.data.data.map((doc) => ({
+            id: doc._id,
+            fullName: doc.fullName,
+            title: doc.speciality || "Ophthalmologist",
+            profilePicture: doc.profilePicture || "",
+            experience: doc.experience || "5",
+            clinicName: doc.clinicName || "Oju Vision Care",
+            fees: doc.consultationFee || "5000",
+          }));
+          setDbDoctors(formattedDoctors);
         }
-      };
-      fetchDoctors();
-    }, []);
-    
+      } catch (error) {
+        console.log("Falling back to dummy data.");
+      }
+    };
+    fetchDoctors();
+  }, []);
+
   const dummyDoctors = [
     {
       id: "dummy1",
@@ -151,7 +149,7 @@ const LandingPage = () => {
                       .getElementById("doctors")
                       ?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className="px-4 py-3 hover:bg-primary/10 hover:text-primary transition-colors border-b border-gray-50 dark:border-gray-700 last:border-0">
+                  className="px-4 py-3 hover:bg-primary/10 hover:text-primary transition-colors border-b border-gray-50 dark:border-gray-700 last:border-0 cursor-pointer">
                   {spec}
                 </span>
               ))}
@@ -181,7 +179,7 @@ const LandingPage = () => {
           </button>
         </div>
 
-        {/* 🔴 NEW: Mobile Menu Toggle */}
+        {/* Mobile Menu Toggle */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="md:hidden text-gray-700 dark:text-gray-300 p-2">
@@ -193,7 +191,7 @@ const LandingPage = () => {
         </button>
       </nav>
 
-      {/* 🔴 NEW: Mobile Menu Dropdown */}
+      {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className="fixed top-[73px] left-0 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg md:hidden flex flex-col p-4 space-y-4 z-40 animate-fade-in-up">
           <a
@@ -238,14 +236,13 @@ const LandingPage = () => {
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight mb-6">
               Your Gateway To <br />
-              <span className="text-primary">Clear Vision & Digital</span>{" "}
+              <span className="text-primary">Clear Vision & Premium</span>{" "}
               <br />
               Eye Care Solutions
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg mb-8 max-w-lg mx-auto md:mx-0">
               Connect with top optometrists and ophthalmologists instantly. Book
-              in-person visits or get remote consultations for your optical
-              health.
+              in-person clinic visits and manage your optical health with ease.
             </p>
           </div>
           <div className="w-full md:w-1/2 mt-10 md:mt-0 relative group">
@@ -359,11 +356,11 @@ const LandingPage = () => {
                 <Smartphone className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                3. Consult & Treat
+                3. Visit & Treat
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Book a physical clinic visit or start a secure online
-                consultation from the comfort of your home.
+                Arrive at your scheduled time for a comprehensive physical
+                examination and expert optical care at the clinic.
               </p>
             </div>
           </div>
@@ -461,8 +458,8 @@ const LandingPage = () => {
                     Zero Wait Times
                   </h4>
                   <p className="text-gray-300 text-sm">
-                    Book appointments instantly. No more sitting in crowded
-                    waiting rooms for hours.
+                    Book physical clinic appointments instantly. No more sitting
+                    in crowded waiting rooms for hours.
                   </p>
                 </div>
               </div>
@@ -488,9 +485,9 @@ const LandingPage = () => {
                 ))}
               </div>
               <p className="text-white text-xl md:text-2xl font-medium leading-relaxed mb-8 italic text-center lg:text-left">
-                "The triage assessment engine was spot on. I booked an online
-                consultation immediately and got a prescription for my eye
-                infection within 30 minutes. Exceptional service."
+                "The triage assessment engine was spot on. I booked a physical
+                clinic visit immediately and got a comprehensive eye exam and
+                prescription within 30 minutes. Exceptional service."
               </p>
               <div className="flex items-center gap-4 justify-center lg:justify-start">
                 <div className="w-12 h-12 bg-primary-light rounded-full flex items-center justify-center text-primary-dark font-bold text-xl">
@@ -532,7 +529,9 @@ const LandingPage = () => {
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
+                <a
+                  href="/login"
+                  className="hover:text-primary transition-colors">
                   Book Appointment
                 </a>
               </li>
@@ -549,7 +548,9 @@ const LandingPage = () => {
             <h4 className="text-white font-semibold mb-4">For Doctors</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
+                <a
+                  href="/login"
+                  className="hover:text-primary transition-colors">
                   Join the Network
                 </a>
               </li>

@@ -163,22 +163,16 @@ const DashboardAppointments = () => {
                     <span className="font-medium">{appointment.time}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                    {appointment.type?.includes("Video") ? (
-                      <Video className="w-5 h-5 text-primary" />
-                    ) : (
-                      <MapPin className="w-5 h-5 text-primary" />
-                    )}
-                    <span className="font-medium">{appointment.type}</span>
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <span className="font-medium">In-Person Clinic Visit</span>
                   </div>
                 </div>
 
                 <div className="flex gap-3 mt-auto">
                   {filter === "Upcoming" ? (
                     <>
-                      <button className="flex-1 bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
-                        {appointment.type?.includes("Video")
-                          ? "Join Call"
-                          : "View Directions"}
+                      <button className="flex-1 bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2">
+                        <MapPin className="w-4 h-4" /> View Clinic Details
                       </button>
                       <button className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium">
                         Cancel

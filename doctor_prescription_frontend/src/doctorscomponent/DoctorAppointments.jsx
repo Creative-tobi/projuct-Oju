@@ -213,12 +213,8 @@ const DoctorAppointments = () => {
                     <span className="font-medium">{appointment.time}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                    {appointment.type?.includes("Video") ? (
-                      <Video className="w-5 h-5 text-primary" />
-                    ) : (
-                      <MapPin className="w-5 h-5 text-primary" />
-                    )}
-                    <span className="font-medium">{appointment.type}</span>
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <span className="font-medium">In-Person Clinic Visit</span>
                   </div>
                 </div>
 
@@ -250,19 +246,8 @@ const DoctorAppointments = () => {
                     </>
                   ) : appointment.status === "confirmed" ? (
                     <>
-                      <button
-                        onClick={() =>
-                          handleStatusUpdate(appointment._id, "Completed")
-                        }
-                        disabled={actionLoading === appointment._id}
-                        className="flex-1 bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-70">
-                        {actionLoading === appointment._id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4" /> Mark as Complete
-                          </>
-                        )}
+                      <button className="flex-1 bg-primary text-white py-3 rounded-xl font-bold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2">
+                        <Check className="w-4 h-4" /> Mark Arrived
                       </button>
                       <button
                         onClick={() =>

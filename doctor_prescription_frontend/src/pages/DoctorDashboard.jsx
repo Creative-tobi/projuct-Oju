@@ -252,7 +252,7 @@ const DoctorDashboard = () => {
                               </div>
                             </div>
                             <button className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary-dark transition-colors">
-                              Join
+                              Start Consult
                             </button>
                           </div>
                         );

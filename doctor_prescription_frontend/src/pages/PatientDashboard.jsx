@@ -10,6 +10,7 @@ import {
   Activity,
   Loader2,
   Menu,
+  MapPin
 } from "lucide-react";
 import api from "../api/axios";
 import Sidebar from "../components/Sidebar";
@@ -270,8 +271,8 @@ const PatientDashboard = () => {
                             {upcomingAppointment.time}
                           </div>
                         </div>
-                        <button className="w-full mt-6 bg-primary/10 text-primary py-2.5 rounded-xl font-bold hover:bg-primary hover:text-white transition-all duration-300">
-                          Join Call
+                        <button className="w-full mt-6 bg-primary/10 text-primary py-2.5 rounded-xl font-bold hover:bg-primary hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
+                          <MapPin className="w-4 h-4" /> View Clinic Details
                         </button>
                       </div>
                     )}

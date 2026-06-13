@@ -5,7 +5,6 @@ import {
   MapPin,
   Calendar as CalendarIcon,
   Clock,
-  Video,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -35,7 +34,6 @@ const DashboardBookDoctor = () => {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState("");
 
-  const [bookingType, setBookingType] = useState("Online Video Consult");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -138,12 +136,12 @@ const DashboardBookDoctor = () => {
     setIsSubmitting(true);
     setErrorMsg("");
     try {
-      // 🔴 FIXED: Sends 'specialist' instead of 'doctorId' to match backend model
+      // 🔴 FIXED: Sends 'specialist' instead of 'doctorId', hardcoded to In-Person
       await api.post("/patient/book", {
         specialist: selectedDoctor._id,
         appointmentDate: selectedDate,
         time: selectedSlot,
-        type: bookingType,
+        type: "In-Person Clinic Visit",
       });
 
       setSuccessMsg("Appointment successfully booked!");
@@ -182,8 +180,8 @@ const DashboardBookDoctor = () => {
           Find a Specialist
         </h2>
         <p className="text-gray-500 dark:text-gray-400">
-          Browse our network of verified professionals and book an open time
-          slot instantly.
+          Browse our network of verified professionals and schedule an in-person
+          clinic visit.
         </p>
       </div>
 
@@ -232,7 +230,7 @@ const DashboardBookDoctor = () => {
                   <button
                     onClick={() => setSelectedDoctor(doctor)}
                     className="w-full bg-primary/10 text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-colors">
-                    View Profile & Book
+                    View Clinic & Book
                   </button>
                 </div>
               ))
@@ -244,7 +242,7 @@ const DashboardBookDoctor = () => {
           </div>
         </>
       ) : !isBooking ? (
-        // 🔴 DOCTOR DETAILS VIEW
+        // 🔴 DOCTOR DETAILS VIEW (Shown before booking)
         <div className="max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm animate-fade-in-up">
           <button
             onClick={() => setSelectedDoctor(null)}
@@ -294,11 +292,10 @@ const DashboardBookDoctor = () => {
               </div>
               <div>
                 <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                  <Building className="w-5 h-5 text-primary" /> Clinic /
-                  Hospital
+                  <Building className="w-5 h-5 text-primary" /> Clinic Location
                 </h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  {selectedDoctor.clinicName || "Digital Clinic"}
+                  {selectedDoctor.clinicName || "Oju Vision Care Clinic"}
                 </p>
               </div>
               <div>
@@ -313,7 +310,7 @@ const DashboardBookDoctor = () => {
               <button
                 onClick={() => setIsBooking(true)}
                 className="w-full bg-primary text-white py-4 rounded-xl font-bold hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30 mt-6">
-                Proceed to Book Appointment{" "}
+                Schedule In-Person Visit{" "}
                 <ArrowLeft className="w-5 h-5 rotate-180" />
               </button>
             </div>
@@ -325,10 +322,11 @@ const DashboardBookDoctor = () => {
           <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-700 pb-6">
             <div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Book Consultation
+                Schedule Clinic Visit
               </h3>
               <p className="text-gray-500 dark:text-gray-400">
-                with Dr. {selectedDoctor.fullName}
+                with Dr. {selectedDoctor.fullName} at{" "}
+                {selectedDoctor.clinicName}
               </p>
             </div>
             <button
@@ -423,25 +421,16 @@ const DashboardBookDoctor = () => {
               {/* Step 3: Consultation Type & Submit */}
               {selectedSlot && (
                 <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">
-                    3. Consultation Type
-                  </label>
-                  <div className="flex gap-4 mb-6">
-                    {["Online Video Consult", "In-Person Clinic Visit"].map(
-                      (type) => (
-                        <button
-                          type="button"
-                          key={type}
-                          onClick={() => setBookingType(type)}
-                          className={`flex-1 py-4 rounded-xl border-2 font-bold transition-all text-sm ${
-                            bookingType === type
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary"
-                          }`}>
-                          {type}
-                        </button>
-                      ),
-                    )}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-xl mb-6 flex items-start gap-3">
+                    <MapPin className="w-5 h-5 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">In-Person Visit Confirmed</p>
+                      <p className="text-sm opacity-90">
+                        Please arrive at{" "}
+                        <strong>{selectedDoctor.clinicName}</strong> 10 minutes
+                        before your scheduled time.
+                      </p>
+                    </div>
                   </div>
 
                   {errorMsg && (
@@ -457,7 +446,7 @@ const DashboardBookDoctor = () => {
                     {isSubmitting ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                      `Confirm Booking for ${selectedSlot}`
+                      `Confirm Clinic Visit for ${selectedSlot}`
                     )}
                   </button>
                 </div>
